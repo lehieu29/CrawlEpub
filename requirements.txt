@@ -1,0 +1,11 @@
+flask
+flask-socketio
+requests
+beautifulsoup4
+ebooklib
+tqdm
+lxml
+dropbox
+python-dotenv
+gunicorn
+flask-cors

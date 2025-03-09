@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block title %}Downloads - Novel Downloader API{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-download me-2"></i>Available Downloaded Novels</h5>
+            </div>
+            <div class="card-body">
+                {% if files %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Novel Name</th>
+                                    <th width="150">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for file in files %}
+                                <tr>
+                                    <td>{{ file }}</td>
+                                    <td>
+                                        <a href="{{ url_for('download_file', filename=file) }}" class="btn btn-success btn-sm">
+                                            <i class="fas fa-download me-1"></i> Download
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>No downloaded novels available yet. 
+                        <a href="/" class="alert-link">Go back to download a novel</a>.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle me-2"></i>About Downloads</h5>
+            </div>
+            <div class="card-body">
+                <p>This page shows all novels that have been successfully downloaded and converted to EPUB format. You can download them directly from this page.</p>
+                
+                <p>Files are stored on the server and will be available as long as the Replit instance is running. For long-term storage, consider setting up Dropbox integration.</p>
+                
+                <a href="/" class="btn btn-primary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Tab Navigation -->
+        <ul class="nav nav-tabs" id="sidebarTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="downloads-tab" data-bs-toggle="tab" data-bs-target="#active-downloads" type="button" role="tab">
+                    <i class="fas fa-tasks me-1"></i>Active Downloads
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#download-logs" type="button" role="tab">
+                    <i class="fas fa-terminal me-1"></i>Logs
+                </button>
+            </li>
+        </ul>
+        
+        <!-- Tab Content -->
+        <div class="tab-content" id="sidebarTabContent">
+            <!-- Active Downloads Tab -->
+            <div class="tab-pane fade show active" id="active-downloads" role="tabpanel">
+                <div class="card border-top-0 rounded-top-0">
+                    <div class="card-body">
+                        <div id="active-downloads-container">
+                            <div class="text-muted text-center py-3" id="no-downloads-message">
+                                <i class="fas fa-info-circle me-2"></i>No active downloads
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Logs Tab -->
+            <div class="tab-pane fade" id="download-logs" role="tabpanel">
+                <div class="card border-top-0 rounded-top-0">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">Download Logs</h6>
+                            <select id="log-filter" class="form-select form-select-sm" style="width: auto;">
+                                <option value="all">All Logs</option>
+                                <option value="info">Info Only</option>
+                                <option value="warning">Warnings & Errors</option>
+                                <option value="error">Errors Only</option>
+                            </select>
+                        </div>
+                        <div class="log-container" id="log-container" style="height: 300px;">
+                            <div class="text-muted text-center py-3">
+                                <i class="fas fa-info-circle me-2"></i>Logs will appear here
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Download Details Modal -->
+<div class="modal fade" id="download-details-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Download Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="download-details-content">
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading download details...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Khôi phục trạng thái ban đầu
+        restoreAppState();
+        
+        // Thêm event listener cho filter log
+        const logFilter = document.getElementById('log-filter');
+        if (logFilter) {
+            logFilter.addEventListener('change', function() {
+                filterLogs(this.value);
+            });
+        }
+        
+        // Function để lọc logs (nếu không có sẵn ở base.html)
+        function filterLogs(filterType) {
+            const logLines = document.querySelectorAll('.log-line');
+            
+            logLines.forEach(line => {
+                const level = line.dataset.level;
+                
+                if (filterType === 'all') {
+                    line.style.display = '';
+                } else if (filterType === 'info' && level === 'info') {
+                    line.style.display = '';
+                } else if (filterType === 'warning' && (level === 'warning' || level === 'error')) {
+                    line.style.display = '';
+                } else if (filterType === 'error' && level === 'error') {
+                    line.style.display = '';
+                } else {
+                    line.style.display = 'none';
+                }
+            });
+        }
+        
+        // Thêm event listeners cho các nút view-details
+        document.querySelectorAll('.view-details-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                showDownloadDetails(this.getAttribute('data-id'));
+            });
+        });
+        
+        // Function để hiển thị chi tiết download
+        function showDownloadDetails(downloadId) {
+            const modal = new bootstrap.Modal(document.getElementById('download-details-modal'));
+            const contentDiv = document.getElementById('download-details-content');
+            
+            // Hiển thị trạng thái đang tải
+            contentDiv.innerHTML = `
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading download details...</p>
+                </div>
+            `;
+            
+            modal.show();
+            
+            // Fetch thông tin download
+            fetch(`/api/status/${downloadId}?logs=100`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Format status và logs
+                        const status = data.status;
+                        const logs = data.logs || [];
+                        
+                        let statusClass = '';
+                        if (status.status === 'completed') statusClass = 'text-success';
+                        else if (status.status === 'failed') statusClass = 'text-danger';
+                        else if (status.status === 'in_progress') statusClass = 'text-primary';
+                        else statusClass = 'text-secondary';
+                        
+                        // Tạo nội dung
+                        let content = `
+                            <h5>Download Information</h5>
+                            <table class="table table-sm">
+                                <tr>
+                                    <th width="120">ID:</th>
+                                    <td>${downloadId}</td>
+                                </tr>
+                                <tr>
+                                    <th>URL:</th>
+                                    <td>${status.url || 'Unknown'}</td>
+                                </tr>
+                                <tr>
+                                    <th>Status:</th>
+                                    <td class="${statusClass}">${status.status.charAt(0).toUpperCase() + status.status.slice(1)}</td>
+                                </tr>
+                            `;
+                            
+                        if (status.submit_time) {
+                            content += `
+                                <tr>
+                                    <th>Submitted:</th>
+                                    <td>${new Date(status.submit_time * 1000).toLocaleString()}</td>
+                                </tr>
+                            `;
+                        }
+                        
+                        if (status.start_time) {
+                            content += `
+                                <tr>
+                                    <th>Started:</th>
+                                    <td>${new Date(status.start_time * 1000).toLocaleString()}</td>
+                                </tr>
+                            `;
+                        }
+                        
+                        if (status.end_time) {
+                            content += `
+                                <tr>
+                                    <th>Finished:</th>
+                                    <td>${new Date(status.end_time * 1000).toLocaleString()}</td>
+                                </tr>
+                            `;
+                            
+                            // Calculate duration
+                            const duration = Math.round((status.end_time - status.start_time) / 60);
+                            content += `
+                                <tr>
+                                    <th>Duration:</th>
+                                    <td>${duration} minutes</td>
+                                </tr>
+                            `;
+                        }
+                        
+                        if (status.file_path) {
+                            content += `
+                                <tr>
+                                    <th>File path:</th>
+                                    <td>${status.file_path}</td>
+                                </tr>
+                            `;
+                        }
+                        
+                        if (status.dropbox_url) {
+                            content += `
+                                <tr>
+                                    <th>Download:</th>
+                                    <td>
+                                        <a href="${status.dropbox_url}" target="_blank" class="btn btn-sm btn-success">
+                                            <i class="fas fa-cloud-download-alt me-1"></i>Download from Dropbox
+                                        </a>
+                                    </td>
+                                </tr>
+                            `;
+                        }
+                        
+                        content += `
+                            </table>
+                            
+                            <h5 class="mt-4">Download Logs</h5>
+                            <div class="log-container" style="max-height: 300px; overflow-y: auto;">
+                        `;
+                        
+                        if (logs.length > 0) {
+                            content += `<div class="small">`;
+                            logs.forEach(log => {
+                                let logClass = '';
+                                if (log.includes('[INFO]')) logClass = 'text-primary';
+                                else if (log.includes('[WARNING]')) logClass = 'text-warning';
+                                else if (log.includes('[ERROR]')) logClass = 'text-danger';
+                                
+                                content += `<div class="${logClass}">${log}</div>`;
+                            });
+                            content += `</div>`;
+                        } else {
+                            content += `<p class="text-muted">No logs available</p>`;
+                        }
+                        
+                        content += `</div>`;
+                        
+                        contentDiv.innerHTML = content;
+                    } else {
+                        contentDiv.innerHTML = `
+                            <div class="alert alert-danger">
+                                Error: ${data.error || 'Could not retrieve download details'}
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    contentDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            Error: ${error.message || 'Could not retrieve download details'}
+                        </div>
+                    `;
+                });
+        }
+    });
+</script>
+{% endblock %}
