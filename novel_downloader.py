@@ -1283,7 +1283,7 @@ class NovelDownloader:
             if self.dropbox:
                 try:
                     self._log('info', "☁️ Đang tải EPUB lên Dropbox...", download_id)
-                    dropbox_url = self.dropbox.upload_file(final_epub_path, f"/NovelDownloader/{safe_filename}")
+                    dropbox_url = self.dropbox.upload_file(final_epub_path, f"/Novel/{safe_filename}")
                     if dropbox_url:
                         self._log('info', f"☁️ EPUB đã được tải lên Dropbox: {dropbox_url}", download_id)
                     else:
