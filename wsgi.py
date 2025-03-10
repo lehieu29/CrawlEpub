@@ -24,5 +24,5 @@ def create_app():
 # Nếu chạy trực tiếp file này
 if __name__ == "__main__":
     # Sử dụng PORT từ biến môi trường
-    port = int(os.environ.get('PORT', 8080))
+    port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)
