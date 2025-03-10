@@ -116,6 +116,7 @@ downloader = NovelDownloader(
 
 # Background worker to process download tasks
 def download_worker():
+    logger.info("Worker thread started")
     while True:
         try:
             # Get a task from the queue
@@ -186,6 +187,40 @@ def download_worker():
 # Start the download worker thread
 worker_thread = threading.Thread(target=download_worker, daemon=True)
 worker_thread.start()
+
+def monitor_worker_thread():
+    global worker_thread
+    while True:
+        if not worker_thread.is_alive():
+            logger.error("Worker thread is dead! Restarting it...")
+            worker_thread = threading.Thread(target=download_worker, daemon=True)
+            worker_thread.start()
+            logger.info("Worker thread restarted")
+        time.sleep(60)  # Check every minute
+
+# Start the monitor thread
+monitor_thread = threading.Thread(target=monitor_worker_thread, daemon=True)
+monitor_thread.start()
+
+# Replace the existing worker thread initialization with this:
+def start_worker_thread():
+    global worker_thread
+    try:
+        # Make sure any old thread is properly terminated
+        if 'worker_thread' in globals() and worker_thread is not None:
+            logger.info("Terminating old worker thread if it exists")
+        
+        # Create and start new thread
+        logger.info("Starting download worker thread")
+        worker_thread = threading.Thread(target=download_worker, daemon=True)
+        worker_thread.start()
+        logger.info(f"Worker thread started, is_alive: {worker_thread.is_alive()}")
+        return True
+    except Exception as e:
+        logger.error(f"Error starting worker thread: {str(e)}")
+        return False
+    
+start_worker_thread()
 
 # Web Routes
 @app.route('/')
