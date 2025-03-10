@@ -2,8 +2,6 @@
 
 A powerful web API for downloading novels from popular web novel sites like metruyencv.com and tangthuvien.net. The downloaded novels are converted to EPUB format for convenient reading on e-readers or mobile devices.
 
-![Novel Downloader API](https://raw.githubusercontent.com/username/novel-downloader-api/main/preview.png)
-
 ## Features
 
 - ✅ Download novels from metruyencv.com and tangthuvien.net
