@@ -335,7 +335,7 @@ def handle_disconnect():
 # Run the application
 if __name__ == '__main__':
     # Determine port from environment variable or use default
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 8080))
 
     # Print server information
     logger.info(f"Starting Novel Downloader API on port {port}")
