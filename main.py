@@ -245,7 +245,33 @@ def ping():
 
 @app.route('/thread_status')
 def thread_status():
+    global worker_thread
+
+    # Kiểm tra worker_thread có tồn tại không
+    if 'worker_thread' not in globals():
+        return "Worker thread is not initialized"
+    
+    # Kiểm tra worker_thread có phải None không
+    if worker_thread is None:
+        return "Worker thread is None"
+    
+    # Thread đang hoạt động bình thường
     return f"Worker thread is alive: {worker_thread.is_alive()}"
+
+@app.route('/thread/start')
+def ensure_worker_thread():
+    global worker_thread
+    
+    # Kiểm tra và khởi tạo lại thread nếu không hoạt động
+    if worker_thread is None or not worker_thread.is_alive():
+        try:
+            worker_thread = threading.Thread(target=download_worker, daemon=True)
+            worker_thread.start()
+            logger.info("Ensured worker thread is running")
+            return "Đang khởi động lại worker"
+        except Exception as e:
+            logger.error(f"Failed to ensure worker thread: {e}")
+            return f"Failed to ensure worker thread: {e}"
 
 # API Routes
 @app.route('/api/download', methods=['POST'])
