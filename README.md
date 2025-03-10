@@ -1,85 +1,136 @@
 # Novel Downloader API
 
-A web API for downloading novels from popular web novel sites like metruyencv.com and tangthuvien.net. The downloaded novels are saved in EPUB format and can be stored on Dropbox for easy access.
+A powerful web API for downloading novels from popular web novel sites like metruyencv.com and tangthuvien.net. The downloaded novels are converted to EPUB format for convenient reading on e-readers or mobile devices.
+
+![Novel Downloader API](https://raw.githubusercontent.com/username/novel-downloader-api/main/preview.png)
 
 ## Features
 
-- Download novels from metruyencv.com and tangthuvien.net
-- Convert to EPUB format optimized for e-readers
-- Real-time progress tracking with WebSocket
-- Dropbox integration for cloud storage
-- Web interface to monitor downloads
-- RESTful API for programmatic access
+- ✅ Download novels from metruyencv.com and tangthuvien.net
+- ✅ Convert to EPUB format optimized for e-readers
+- ✅ Real-time progress tracking with WebSocket
+- ✅ Dropbox integration for cloud storage
+- ✅ Web interface to monitor downloads
+- ✅ RESTful API for programmatic access
+- ✅ Support for premium/VIP content with access tokens
 
-## Setup on Replit
+## Deployment Options
 
-### 1. Create a New Replit Project
+### Quick Setup on Replit
 
-1. Go to [Replit](https://replit.com/) and sign in or create an account
-2. Click on "Create Repl" button
-3. Choose "Python" as the language
-4. Give your project a name (e.g., "novel-downloader-api")
-5. Click "Create Repl"
+1. Create a new Replit project:
+   - Go to [Replit](https://replit.com/) and sign in or create an account
+   - Click on "Create Repl" button
+   - Choose "Python" as the language
+   - Give your project a name (e.g., "novel-downloader-api")
+   - Click "Create Repl"
 
-### 2. Add the Project Files
+2. Upload project files:
+   - Upload all the provided files to your Replit project
+   - Alternatively, import directly from GitHub if you've forked the repository
 
-Upload or create the following files in your Replit project:
+3. Configure environment variables:
+   - Create a `.env` file or use Replit's Secrets manager
+   - Set `SECRET_KEY` to a random string
+   - Optionally, set `DROPBOX_ACCESS_TOKEN` for Dropbox integration
 
-- `main.py` - The main Flask application
-- `novel_downloader.py` - The novel downloader module
-- `dropbox_storage.py` - The Dropbox integration module
-- `requirements.txt` - The Python dependencies
-- `.env` - Configuration file (create this from `.env.example`)
-- `templates/` - Directory containing HTML templates
-  - `templates/base.html` - Base template
-  - `templates/index.html` - Main page template
-  - `templates/api_docs.html` - API documentation template
+4. Run the project:
+   - Click the "Run" button in Replit
+   - The web interface will be available at your Replit URL
 
-### 3. Setup Dropbox Integration (Optional)
+### Deploy to Render.com
 
-To enable Dropbox integration for storing downloaded novels:
+1. Push your code to a GitHub repository
 
-1. Go to [Dropbox Developer Console](https://www.dropbox.com/developers/apps)
-2. Click "Create app"
-3. Choose "Scoped access" -> "Full Dropbox" access
-4. Give your app a name
-5. Go to the "Permissions" tab and enable the following permissions:
-   - `files.content.write`
-   - `files.content.read`
-   - `sharing.write`
-6. Go to the "Settings" tab and add your Replit domain to "OAuth 2 Redirect URIs"
-7. Generate an access token under "Generated access token"
-8. Copy the access token and paste it in the `.env` file:
-```
-DROPBOX_ACCESS_TOKEN=your_access_token_here
-```
+2. Sign up or log in to [Render.com](https://render.com/)
 
-### 4. Configure Environment Variables
+3. Create a new Web Service:
+   - Connect your GitHub repository
+   - Set build command: `pip install -r requirements.txt`
+   - Set start command: `gunicorn --worker-class eventlet -w 1 -b 0.0.0.0:$PORT "wsgi:create_app()"`
 
-Update the `.env` file with your configuration:
+4. Configure environment variables:
+   - Add `SECRET_KEY` with a random string
+   - Optionally, add `DROPBOX_ACCESS_TOKEN` for Dropbox integration
 
-```
-# Server configuration
-SECRET_KEY=your_random_secret_key
-PORT=8080
+5. Deploy the service
 
-# Dropbox configuration (optional)
-DROPBOX_ACCESS_TOKEN=your_dropbox_access_token
-```
+### Local Development Setup
 
-### 5. Start the Application
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/novel-downloader-api.git
+   cd novel-downloader-api
+   ```
 
-In Replit, simply click the "Run" button to start the application. The web interface should be available at the URL provided by Replit.
+2. Create a virtual environment:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Create a `.env` file:
+   ```
+   SECRET_KEY=your_random_secret_key
+   PORT=8080
+   DROPBOX_ACCESS_TOKEN=your_dropbox_access_token  # Optional
+   ```
+
+5. Run the setup script:
+   ```bash
+   python setup.py
+   ```
+
+6. Start the server:
+   ```bash
+   python main.py
+   ```
+
+7. Access the web interface at http://localhost:8080
+
+### Google Colab Usage
+
+For those who prefer using Google Colab for novel downloading:
+
+1. Open [Google Colab](https://colab.research.google.com/)
+
+2. Create a new notebook
+
+3. Upload the `crawl_epub_google_colab.py` file to your Google Drive
+
+4. In a Colab cell, mount your Google Drive:
+   ```python
+   from google.colab import drive
+   drive.mount('/content/drive')
+   ```
+
+5. Run the script directly from your Drive:
+   ```python
+   %run /content/drive/My\ Drive/path_to_script/crawl_epub_google_colab.py
+   ```
+
+6. Follow the interactive prompts to download novels
 
 ## API Documentation
-
-The API documentation is available at `/api-docs` when the application is running. It provides details on the available endpoints and how to use them.
 
 ### Basic Endpoints
 
 - `POST /api/download` - Start a novel download
+  ```json
+  {
+    "url": "https://metruyencv.com/truyen/example-novel",
+    "cookie": "optional_access_token"
+  }
+  ```
+
 - `GET /api/status/:download_id` - Get download status
 - `GET /api/logs` - Get recent logs
+- `GET /downloads/:filename` - Download a novel file directly
 
 ### WebSocket Events
 
@@ -88,9 +139,37 @@ The API documentation is available at `/api-docs` when the application is runnin
 - `download_completed` - Download completed
 - `download_failed` - Download failed
 
+## Dropbox Integration Setup
+
+To enable Dropbox integration for storing downloaded novels:
+
+1. Go to [Dropbox Developer Console](https://www.dropbox.com/developers/apps)
+2. Click "Create app"
+3. Choose "Scoped access" -> "Full Dropbox" access
+4. Give your app a name
+5. Go to the "Permissions" tab and enable:
+   - `files.content.write`
+   - `files.content.read`
+   - `sharing.write`
+6. Generate an access token under "Generated access token"
+7. Add the token to your `.env` file:
+   ```
+   DROPBOX_ACCESS_TOKEN=your_access_token_here
+   ```
+
+## Keeping the API Running 24/7
+
+For Replit users, you can keep your API running 24/7 by using a service like UptimeRobot:
+
+1. Register at [UptimeRobot](https://uptimerobot.com/)
+2. Add a new monitor:
+   - Choose "HTTP(s)" type
+   - Enter your Replit URL + "/ping" path
+   - Set 5-minute monitoring interval
+
 ## Usage Examples
 
-### Using the Web Interface
+### Web Interface
 
 1. Open the web interface in your browser
 2. Enter the novel URL in the form
@@ -98,11 +177,11 @@ The API documentation is available at `/api-docs` when the application is runnin
 4. Click "Download Novel" and wait for the process to complete
 5. Download your EPUB file from the provided link
 
-### Using the API
+### API Usage
 
 ```javascript
 // Example: Start a download
-fetch('https://your-replit-url.repl.co/api/download', {
+fetch('https://your-api-url.com/api/download', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json'
@@ -117,7 +196,7 @@ fetch('https://your-replit-url.repl.co/api/download', {
   console.log('Download ID:', data.download_id);
 
   // Check status
-  return fetch(`https://your-replit-url.repl.co/api/status/${data.download_id}`);
+  return fetch(`https://your-api-url.com/api/status/${data.download_id}`);
 })
 .then(response => response.json())
 .then(statusData => {
@@ -125,16 +204,13 @@ fetch('https://your-replit-url.repl.co/api/download', {
 });
 ```
 
-## Folder Structure
-
-The downloaded novels are organized as follows:
-
-- `novel_temp/` - Temporary files during download
-- `novel_output/` - Final EPUB files
-
 ## License
 
 This project is open-source and available under the MIT License.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Acknowledgements
 
