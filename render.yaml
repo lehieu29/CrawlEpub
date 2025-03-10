@@ -3,11 +3,11 @@ services:
     name: novel-downloader-api
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn main:app
+    startCommand: gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 "wsgi:create_app()"
     envVars:
       - key: SECRET_KEY
         generateValue: true
       - key: PORT
-        value: 8080
+        value: 10000
       - key: DROPBOX_ACCESS_TOKEN
         sync: false

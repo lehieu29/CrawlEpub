@@ -20,12 +20,18 @@ class NovelDownloader:
         self.socket = socket
         self.dropbox = dropbox
 
-        # Create temp folder for downloaded files
-        self.temp_folder = os.path.join(os.getcwd(), 'novel_temp')
+        # Xác định thư mục gốc
+        self.project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if not os.path.exists(self.project_root):
+            # Fallback nếu không tìm thấy thư mục gốc
+            self.project_root = os.getcwd()
+
+        # Create temp folder with full path
+        self.temp_folder = os.path.join(self.project_root, 'novel_temp')
         os.makedirs(self.temp_folder, exist_ok=True)
 
-        # Create output folder for final files
-        self.output_folder = os.path.join(os.getcwd(), 'novel_output')
+        # Create output folder with full path
+        self.output_folder = os.path.join(self.project_root, 'novel_output')
         os.makedirs(self.output_folder, exist_ok=True)
 
         # Set up queues for background processing

@@ -27,17 +27,28 @@ if not os.environ.get('SECURE_PATH_KEY'):
 
 # Tạo thư mục bảo mật dựa trên secret key
 def get_secure_path(base_path):
-    # Tạo hash từ secret key
-    secure_hash = hashlib.sha256(os.environ['SECURE_PATH_KEY'].encode()).hexdigest()[:12]
-    # Tạo đường dẫn bảo mật
-    secure_path = os.path.join(base_path, secure_hash)
-    os.makedirs(secure_path, exist_ok=True)
-    return secure_path
+    try:
+        # Tạo hash từ secret key
+        secure_hash = hashlib.sha256(os.environ['SECURE_PATH_KEY'].encode()).hexdigest()[:12]
+        # Tạo đường dẫn bảo mật
+        secure_path = os.path.join(base_path, secure_hash)
+        os.makedirs(secure_path, exist_ok=True)
+        return secure_path
+    except Exception as e:
+        print(f"Error creating secure path: {e}")
+        # Fallback to base path
+        os.makedirs(base_path, exist_ok=True)
+        return base_path
 
 # Cập nhật đường dẫn novel_temp và novel_output
 NOVEL_TEMP = get_secure_path(os.path.join(os.getcwd(), 'novel_temp'))
 NOVEL_OUTPUT = get_secure_path(os.path.join(os.getcwd(), 'novel_output'))
 LOG_DIR = get_secure_path(os.path.join(os.getcwd(), 'logs'))
+
+# Create necessary directories
+os.makedirs(NOVEL_TEMP, exist_ok=True)
+os.makedirs(NOVEL_OUTPUT, exist_ok=True)
+os.makedirs(LOG_DIR, exist_ok=True)
 
 # Initialize keep-alive system
 keep_alive = KeepAlive(interval=300)  # Ping every 5 minutes
@@ -81,7 +92,7 @@ logger.addHandler(recent_logs_handler)
 app = Flask(__name__)
 CORS(app)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'novel-downloader-secret')
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
 
 # Queue for download tasks
 download_queue = queue.Queue()
@@ -323,11 +334,6 @@ def handle_disconnect():
 
 # Run the application
 if __name__ == '__main__':
-    # Create necessary directories
-    os.makedirs(NOVEL_TEMP, exist_ok=True)
-    os.makedirs(NOVEL_OUTPUT, exist_ok=True)
-    os.makedirs(LOG_DIR, exist_ok=True)
-            
     # Determine port from environment variable or use default
     port = int(os.environ.get('PORT', 5000))
 
