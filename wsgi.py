@@ -1,3 +1,4 @@
+import os
 # Đầu tiên, thực hiện monkey-patching trước khi import bất kỳ module nào khác
 from gevent import monkey
 monkey.patch_all()
@@ -11,4 +12,5 @@ def create_app():
 
 # Nếu chạy trực tiếp file này
 if __name__ == "__main__":
-    socketio.run(app)
+    port = int(os.environ.get('PORT', 5000))
+    socketio.run(app, host='0.0.0.0', port=port)
