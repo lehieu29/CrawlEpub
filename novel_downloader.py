@@ -88,7 +88,24 @@ class NovelDownloader:
                 if save_task:
                     book, intro, chapters, output_path, download_id = save_task
                     try:
+                        # First save to local temp file
                         self._save_epub(book, intro, chapters, output_path, True, download_id)
+                        
+                        # If Dropbox is available, also save to Dropbox/Novel/Temp
+                        if self.dropbox and self.dropbox.is_active:
+                            filename = os.path.basename(output_path)
+                            dropbox_temp_path = f"/Novel/Temp/{filename}"
+                            
+                            # Ensure the Temp folder exists
+                            self.dropbox.create_folder("/Novel/Temp")
+                            
+                            # Upload the checkpoint to Dropbox
+                            dropbox_url = self.dropbox.upload_file(output_path, dropbox_temp_path)
+                            if dropbox_url:
+                                self._log('info', f"Checkpoint also saved to Dropbox: {dropbox_url}", download_id)
+                            else:
+                                self._log('warning', "Failed to save checkpoint to Dropbox", download_id)
+                        
                         self._log('info', f"Saved checkpoint after {len(chapters)} chapters", download_id)
                     except Exception as e:
                         self._log('error', f"Error saving checkpoint: {str(e)}", download_id)
@@ -107,13 +124,45 @@ class NovelDownloader:
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36",
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.63 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36",
             # Firefox
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:90.0) Gecko/20100101 Firefox/90.0",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:89.0) Gecko/20100101 Firefox/89.0",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:90.0) Gecko/20100101 Firefox/90.0",
+            # Safari
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Safari/605.1.15",
             # Edge
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.59",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36 Edg/92.0.902.62",
+            # Opera
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 OPR/77.0.4054.254",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36 OPR/78.0.4093.112",
+            # Mobile
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1",
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1",
+            "Mozilla/5.0 (Linux; Android 11; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 12; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Mobile Safari/537.36"
         ]
         return random.choice(user_agents)
+    
+    def _delete_local_file(self, file_path, download_id=None):
+        """Delete a local file after successful Dropbox upload"""
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                self._log('info', f"🗑️ Đã xóa tệp cục bộ sau khi tải lên Dropbox: {file_path}", download_id)
+                return True
+            else:
+                self._log('warning', f"❓Không thể tìm thấy tệp cục bộ để xóa: {file_path}", download_id)
+                return False
+        except Exception as e:
+            self._log('error', f"⚠️ Lỗi khi xóa tệp cục bộ: {str(e)}", download_id)
+            return False
 
     def _delay(self, second, download_id=None):
         """Delay execution with a message"""
@@ -170,6 +219,126 @@ class NovelDownloader:
             return "tangthuvien"
         else:
             raise ValueError("Unsupported URL. Currently only metruyencv.com and tangthuvien.net are supported")
+
+    def _check_existing_novel(self, epub_filename, download_id=None):
+        """Check if novel already exists locally or in Dropbox, and load it if possible"""
+        try:
+            # Generate file paths
+            safe_filename = re.sub(r'[\\/*?:"<>|]', "_", epub_filename)
+            temp_epub_path = os.path.join(self.temp_folder, safe_filename)
+            final_epub_path = os.path.join(self.output_folder, safe_filename)
+            
+            # Check paths to search
+            check_paths = [final_epub_path, temp_epub_path]
+            found_path = None
+            
+            # Check local files first
+            for path in check_paths:
+                if os.path.exists(path):
+                    self._log('info', f"📄 Đã tìm thấy tệp EPUB trong: {path}", download_id)
+                    found_path = path
+                    break
+            
+            # If not found locally and Dropbox is active, check Dropbox
+            if not found_path and self.dropbox and self.dropbox.is_active:
+                # Check if file exists in Dropbox /Novel directory
+                dropbox_path = f"/Novel/{safe_filename}"
+                try:
+                    # List files in the Novel directory
+                    files = self.dropbox.list_files("/Novel")
+                    for file in files:
+                        if file['name'] == safe_filename:
+                            self._log('info', f"📦 Đã tìm thấy EPUB trong Dropbox: {dropbox_path}", download_id)
+                            
+                            # Download the file to local temp
+                            self._log('info', f"⬇️ Đang tải EPUB từ Dropbox...", download_id)
+                            if self.dropbox.download_file(dropbox_path, temp_epub_path):
+                                self._log('info', f"✅ Đã tải thành công EPUB hiện có từ Dropbox", download_id)
+                                found_path = temp_epub_path
+                            else:
+                                self._log('warning', f"❌ Tải EPUB hiện có từ Dropbox thất bại", download_id)
+                            break
+                    
+                    # Also check Temp directory
+                    if not found_path:
+                        files = self.dropbox.list_files("/Novel/Temp")
+                        for file in files:
+                            if file['name'] == safe_filename:
+                                dropbox_temp_path = f"/Novel/Temp/{safe_filename}"
+                                self._log('info', f"✅ Đã tìm thấy checkpoint hiện có trong Dropbox: {dropbox_temp_path}", download_id)
+                                
+                                # Download the file to local temp
+                                if self.dropbox.download_file(dropbox_temp_path, temp_epub_path):
+                                    self._log('info', f"✅ Đã tải thành công checkpoint từ Dropbox", download_id)
+                                    found_path = temp_epub_path
+                                else:
+                                    self._log('warning', f"❌ Tải checkpoint từ Dropbox thất bại", download_id)
+                                break
+                except Exception as e:
+                    self._log('warning', f"⚠️ Lỗi khi kiểm tra Dropbox để tìm EPUB hiện có: {str(e)}", download_id)
+            
+            # If we found a file, try to load it
+            if found_path:
+                try:
+                    self._log('info', f"🔄 Đang đọc tệp EPUB hiện có: {found_path}", download_id)
+                    book = epub.read_epub(found_path)
+                    
+                    # Find introduction page
+                    intro = None
+                    for item in book.items:
+                        if isinstance(item, epub.EpubHtml) and item.file_name == 'intro.xhtml':
+                            intro = item
+                            # Ensure intro has an id
+                            if not hasattr(intro, 'id') or not intro.id:
+                                intro.id = 'intro'
+                            self._log('info', f"📑 Đã tìm thấy trang giới thiệu", download_id)
+                            break
+                    
+                    if not intro:
+                        self._log('warning', f"❌ Không tìm thấy trang giới thiệu trong EPUB hiện có", download_id)
+                    
+                    # Find existing chapters
+                    existing_chapters = []
+                    for item in book.items:
+                        if isinstance(item, epub.EpubHtml) and item.file_name.startswith('chapter_') and item.file_name.endswith('.xhtml'):
+                            # Ensure chapter has id
+                            if not hasattr(item, 'id') or not item.id:
+                                try:
+                                    chapter_num = int(item.file_name.split('_')[1].split('.')[0])
+                                    item.id = f'chapter_{chapter_num}'
+                                except Exception as e:
+                                    self._log('warning', f"⚠️ Lỗi khi thiết lập ID chương: {str(e)}", download_id)
+                            
+                            existing_chapters.append(item)
+                    
+                    self._log('info', f"📚 Đã tìm thấy {len(existing_chapters)} chương hiện có", download_id)
+                    
+                    # Find max chapter number
+                    max_chapter = 0
+                    for chapter in existing_chapters:
+                        try:
+                            if hasattr(chapter, 'id') and chapter.id:
+                                chapter_num = int(chapter.id.split('_')[1])
+                            else:
+                                chapter_num = int(chapter.file_name.split('_')[1].split('.')[0])
+                            max_chapter = max(max_chapter, chapter_num)
+                        except Exception as e:
+                            self._log('warning', f"⚠️ Lỗi khi lấy số chương: {str(e)}", download_id)
+                    
+                    self._log('info', f"📖 Chương cuối cùng hiện có: Chương {max_chapter}", download_id)
+                    
+                    return book, intro, existing_chapters, max_chapter
+                
+                except Exception as e:
+                    self._log('error', f"⚠️ Lỗi khi tải EPUB hiện có: {str(e)}", download_id)
+                    traceback.print_exc()
+            
+            return None, None, [], 0
+        
+        except Exception as e:
+            self._log('error', f"⚠️ Lỗi khi kiểm tra tiểu thuyết hiện có: {str(e)}", download_id)
+            traceback.print_exc()
+            return None, None, [], 0
 
     def _get_mtc_novel_info(self, url, cookie='', download_id=None):
         """Get novel information from Metruyenchu"""
@@ -1233,15 +1402,64 @@ class NovelDownloader:
             safe_filename = re.sub(r'[\\/*?:"<>|]', "_", epub_filename)
             temp_epub_path = os.path.join(self.temp_folder, safe_filename)
             final_epub_path = os.path.join(self.output_folder, safe_filename)
-
-            # Create new EPUB
-            self._log('info', "📕 Đang tạo file EPUB mới...", download_id)
-            book, intro = self._create_epub(novel_info, download_id)
-
+            
+            # Check if novel already exists and load it
+            existing_book, existing_intro, existing_chapters, max_existing_chapter = self._check_existing_novel(epub_filename, download_id)
+            
+            if existing_book and existing_intro and existing_chapters:
+                book = existing_book
+                intro = existing_intro
+                self._log('info', f"📕 Đã tìm thấy truyện đã tải trước đó với {len(existing_chapters)} chương", download_id)
+                self._log('info', f"📕 Sẽ tiếp tục tải từ chương {max_existing_chapter + 1}", download_id)
+            else:
+                # Create new EPUB
+                self._log('info', "📕 Đang tạo file EPUB mới...", download_id)
+                book, intro = self._create_epub(novel_info, download_id)
+                existing_chapters = []
+                max_existing_chapter = 0
+            
+            # Filter chapters to download (only chapters after the max existing chapter)
+            chapters_to_download = [chapter for chapter in sorted_chapters if chapter.get('index', 0) > max_existing_chapter]
+            
+            if not chapters_to_download:
+                self._log('info', "✅ Tất cả các chương đã có, không cần tải thêm", download_id)
+                # Still save EPUB to update navigation and optimize
+                all_chapters = existing_chapters
+                self._save_epub(book, intro, all_chapters, final_epub_path, False, download_id)
+                
+                # Upload to Dropbox if available
+                dropbox_url = None
+                if self.dropbox and self.dropbox.is_active:
+                    try:
+                        self._log('info', "☁️ Đang tải EPUB lên Dropbox...", download_id)
+                        dropbox_path = f"/Novel/{safe_filename}"
+                        dropbox_url = self.dropbox.upload_file(final_epub_path, dropbox_path)
+                        if dropbox_url:
+                            self._log('info', f"☁️ EPUB đã được tải lên Dropbox: {dropbox_url}", download_id)
+                            
+                            # Delete local file after successful upload
+                            self._delete_local_file(final_epub_path, download_id)
+                        else:
+                            self._log('warning', "⚠️ Không thể tạo URL tải xuống Dropbox", download_id)
+                    except Exception as e:
+                        self._log('warning', f"⚠️ Lỗi khi tải lên Dropbox: {str(e)}", download_id)
+                
+                return {
+                    'success': True,
+                    'file_path': final_epub_path,
+                    'dropbox_url': dropbox_url,
+                    'title': novel_info['title'],
+                    'author': novel_info['author'],
+                    'chapter_count': len(all_chapters),
+                    'message': "All chapters already exist"
+                }
+            
+            self._log('info', f"📥 Cần tải {len(chapters_to_download)} chương mới", download_id)
+            
             # Download chapters
             new_chapters = []
 
-            for chapter_info in tqdm(sorted_chapters, desc="Đang tải chương"):
+            for chapter_info in tqdm(chapters_to_download, desc="Đang tải chương"):
                 try:
                     chapter_index = chapter_info.get('index')
                     self._log('info', f"📥 Đang tải chương {chapter_index}: {chapter_info.get('name', 'Không tên')}", download_id)
@@ -1255,7 +1473,8 @@ class NovelDownloader:
 
                     # Save checkpoint every 50 chapters
                     if len(new_chapters) % self.checkpoint_interval == 0:
-                        self.save_queue.put((book, intro, new_chapters, temp_epub_path, download_id))
+                        all_chapters = existing_chapters + new_chapters
+                        self.save_queue.put((book, intro, all_chapters, temp_epub_path, download_id))
                         self._log('info', f"💾 Đã lên lịch lưu điểm kiểm tra sau khi tải {len(new_chapters)} chương", download_id)
 
                     # Short delay between requests to avoid being blocked
@@ -1268,24 +1487,35 @@ class NovelDownloader:
 
                     # Save current state if error occurs
                     try:
-                        self.save_queue.put((book, intro, new_chapters, temp_epub_path, download_id))
+                        all_chapters = existing_chapters + new_chapters
+                        self.save_queue.put((book, intro, all_chapters, temp_epub_path, download_id))
                         self.save_queue.join()
                         self._log('warning', f"💾 Đã lưu trạng thái sau khi tải {len(new_chapters)} chương do lỗi", download_id)
                     except Exception as save_err:
                         self._log('error', f"Lỗi khi lưu trạng thái sau khi gặp lỗi: {str(save_err)}", download_id)
 
+            # Combine existing and new chapters
+            all_chapters = existing_chapters + new_chapters
+
             # Save final EPUB
             self._log('info', "🏁 Tải xuống hoàn tất, đang lưu EPUB cuối cùng...", download_id)
-            self._save_epub(book, intro, new_chapters, final_epub_path, False, download_id)
+            self._save_epub(book, intro, all_chapters, final_epub_path, False, download_id)
 
             # Upload to Dropbox if available
             dropbox_url = None
-            if self.dropbox:
+            if self.dropbox and self.dropbox.is_active:
                 try:
                     self._log('info', "☁️ Đang tải EPUB lên Dropbox...", download_id)
-                    dropbox_url = self.dropbox.upload_file(final_epub_path, f"/Novel/{safe_filename}")
+                    dropbox_path = f"/Novel/{safe_filename}"
+                    dropbox_url = self.dropbox.upload_file(final_epub_path, dropbox_path)
                     if dropbox_url:
                         self._log('info', f"☁️ EPUB đã được tải lên Dropbox: {dropbox_url}", download_id)
+                        
+                        # Delete local file after successful upload
+                        self._delete_local_file(final_epub_path, download_id)
+                        
+                        # Also delete temp files
+                        self._delete_local_file(temp_epub_path, download_id)
                     else:
                         self._log('warning', "⚠️ Không thể tạo URL tải xuống Dropbox", download_id)
                 except Exception as e:
@@ -1301,7 +1531,7 @@ class NovelDownloader:
                 'dropbox_url': dropbox_url,
                 'title': novel_info['title'],
                 'author': novel_info['author'],
-                'chapter_count': len(new_chapters)
+                'chapter_count': len(all_chapters)
             }
         except Exception as e:
             error_msg = f"Lỗi không xử lý được trong quá trình tải xuống: {str(e)}"

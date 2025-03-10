@@ -93,7 +93,7 @@ active_downloads = {}
 dropbox_token = os.getenv('DROPBOX_ACCESS_TOKEN')
 if not dropbox_token:
     logger.warning("DROPBOX_ACCESS_TOKEN not found! Dropbox storage will not work.")
-dropbox_storage = DropboxStorage(dropbox_token)
+dropbox_storage = DropboxStorage(logger=logger, socket=socketio, access_token=dropbox_token)
 
 # Initialize the novel downloader with the specified parameters
 downloader = NovelDownloader(

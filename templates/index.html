@@ -229,11 +229,13 @@
         });
 
         socket.on('log_update', function (data) {
+            // Add log to the main log container
             addLogMessage(data.level, data.message, data.download_id);
             updateDownloadItem(data.download_id);
-
-            // Nếu là log từ dropbox_storage, thêm vào dropbox log container
-            if (data.message.includes('Dropbox') || (data.source && data.source === 'dropbox_storage')) {
+            
+            // Check if this is a Dropbox log
+            if (data.source === 'dropbox_storage' || data.message.includes('Dropbox')) {
+                // Add to dropbox log container
                 addDropboxLogMessage(data.level, data.message, data.download_id);
             }
         });
@@ -347,34 +349,34 @@
 
         // Function to add Dropbox log message to container
         function addDropboxLogMessage(level, message, downloadId) {
-            const dropboxLogContainer = document.getElementById('dropbox-log-container');
-            if (!dropboxLogContainer) return;
+    const dropboxLogContainer = document.getElementById('dropbox-log-container');
+    if (!dropboxLogContainer) return;
 
-            const logLine = document.createElement('div');
-            logLine.className = `log-line log-${level}`;
-            logLine.dataset.level = level;
-            logLine.dataset.downloadId = downloadId || '';
+    const logLine = document.createElement('div');
+    logLine.className = `log-line log-${level}`;
+    logLine.dataset.level = level;
+    logLine.dataset.downloadId = downloadId || '';
 
-            const timestamp = new Date().toLocaleTimeString();
-            logLine.innerHTML = `<span class="log-time">[${timestamp}]</span> <span class="log-level">[${level.toUpperCase()}]</span> ${message}`;
+    const timestamp = new Date().toLocaleTimeString();
+    logLine.innerHTML = `<span class="log-time">[${timestamp}]</span> <span class="log-level">[${level.toUpperCase()}]</span> ${message}`;
 
-            dropboxLogContainer.appendChild(logLine);
-            dropboxLogContainer.scrollTop = dropboxLogContainer.scrollHeight;
+    dropboxLogContainer.appendChild(logLine);
+    dropboxLogContainer.scrollTop = dropboxLogContainer.scrollHeight;
 
-            // Apply current filter
-            if (dropboxLogFilter) {
-                filterDropboxLogs(dropboxLogFilter.value);
-            }
+    // Apply current filter
+    if (dropboxLogFilter) {
+        filterDropboxLogs(dropboxLogFilter.value);
+    }
 
-            // Hide "dropbox logs will appear here" message if present
-            const noLogsMessage = dropboxLogContainer.querySelector('.text-muted');
-            if (noLogsMessage) {
-                noLogsMessage.style.display = 'none';
-            }
+    // Hide "dropbox logs will appear here" message if present
+    const noLogsMessage = dropboxLogContainer.querySelector('.text-muted');
+    if (noLogsMessage) {
+        noLogsMessage.style.display = 'none';
+    }
 
-            // Save state
-            saveAppState();
-        }
+    // Save state
+    saveAppState();
+}
 
         // Function to filter logs
         function filterLogs(filterType) {
