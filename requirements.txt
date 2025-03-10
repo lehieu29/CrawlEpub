@@ -1,5 +1,6 @@
 flask
 flask-socketio
+eventlet
 requests
 beautifulsoup4
 ebooklib
@@ -9,5 +10,3 @@ dropbox
 python-dotenv
 gunicorn
 flask-cors
-gevent
-gevent-websocket

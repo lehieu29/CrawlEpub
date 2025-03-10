@@ -1,19 +1,16 @@
-import os
-# First, do monkey-patching before importing any other modules
-from gevent import monkey
-monkey.patch_all()
+# Thực hiện monkey-patching với eventlet thay vì gevent
+import eventlet
+eventlet.monkey_patch()
 
-# Then import Flask app
+# Sau đó import các module khác
+import os
 from main import app, socketio
 
-# This function will be called by Gunicorn
+# Hàm này sẽ được gọi bởi Gunicorn
 def create_app():
-    port = int(os.environ.get('PORT', 'not set'))
-    print(f"PORT environment variable: {port}")
     return socketio.middleware(app)
 
-# If running this file directly
+# Nếu chạy trực tiếp file này
 if __name__ == "__main__":
-    # Make sure to use the PORT environment variable
-    port = int(os.environ.get('PORT', 8080))
+    port = int(os.environ.get('PORT', 10000))
     socketio.run(app, host='0.0.0.0', port=port)

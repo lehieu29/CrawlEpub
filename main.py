@@ -92,7 +92,7 @@ logger.addHandler(recent_logs_handler)
 app = Flask(__name__)
 CORS(app)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'novel-downloader-secret')
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # Queue for download tasks
 download_queue = queue.Queue()
@@ -335,7 +335,7 @@ def handle_disconnect():
 # Run the application
 if __name__ == '__main__':
     # Determine port from environment variable or use default
-    port = int(os.environ.get('PORT', 8080))
+    port = int(os.environ.get('PORT', 10000))
 
     # Print server information
     logger.info(f"Starting Novel Downloader API on port {port}")
