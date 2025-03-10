@@ -5,6 +5,7 @@ import json
 import threading
 import queue
 import hashlib
+import datetime
 from flask import Flask, request, jsonify, render_template
 from flask_socketio import SocketIO
 from flask_cors import CORS
@@ -198,8 +199,12 @@ def api_docs():
 @app.route('/ping')
 def ping():
     """Simple ping endpoint for keep-alive services like UptimeRobot"""
-    timestamp = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
-    return render_template('ping.html', timestamp=timestamp)
+    # Lấy thời gian UTC
+    utc_time = time.gmtime()
+    # Tạo timestamp là giờ UTC+7 (giờ Việt Nam)
+    vn_timestamp = time.strftime("%Y-%m-%d %H:%M:%S", 
+                                time.gmtime(time.mktime(utc_time) + 7*3600))
+    return render_template('ping.html', timestamp=vn_timestamp)
 
 # API Routes
 @app.route('/api/download', methods=['POST'])

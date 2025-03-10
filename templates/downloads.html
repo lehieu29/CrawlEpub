@@ -11,33 +11,34 @@
             </div>
             <div class="card-body">
                 {% if files %}
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Novel Name</th>
-                                    <th width="150">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for file in files %}
-                                <tr>
-                                    <td>{{ file }}</td>
-                                    <td>
-                                        <a href="{{ url_for('download_file', filename=file) }}" class="btn btn-success btn-sm">
-                                            <i class="fas fa-download me-1"></i> Download
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Novel Name</th>
+                                <th width="150">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for file in files %}
+                            <tr>
+                                <td>{{ file }}</td>
+                                <td>
+                                    <a href="{{ url_for('download_file', filename=file) }}"
+                                        class="btn btn-success btn-sm">
+                                        <i class="fas fa-download me-1"></i> Download
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 {% else %}
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>No downloaded novels available yet. 
-                        <a href="/" class="alert-link">Go back to download a novel</a>.
-                    </div>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>No downloaded novels available yet.
+                    <a href="/" class="alert-link">Go back to download a novel</a>.
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -47,32 +48,36 @@
                 <h5><i class="fas fa-info-circle me-2"></i>About Downloads</h5>
             </div>
             <div class="card-body">
-                <p>This page shows all novels that have been successfully downloaded and converted to EPUB format. You can download them directly from this page.</p>
-                
-                <p>Files are stored on the server and will be available as long as the Replit instance is running. For long-term storage, consider setting up Dropbox integration.</p>
-                
+                <p>This page shows all novels that have been successfully downloaded and converted to EPUB format. You
+                    can download them directly from this page.</p>
+
+                <p>Files are stored on the server and will be available as long as the Replit instance is running. For
+                    long-term storage, consider setting up Dropbox integration.</p>
+
                 <a href="/" class="btn btn-primary">
                     <i class="fas fa-arrow-left me-2"></i>Back to Home
                 </a>
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-4">
         <!-- Tab Navigation -->
         <ul class="nav nav-tabs" id="sidebarTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="downloads-tab" data-bs-toggle="tab" data-bs-target="#active-downloads" type="button" role="tab">
+                <button class="nav-link active" id="downloads-tab" data-bs-toggle="tab"
+                    data-bs-target="#active-downloads" type="button" role="tab">
                     <i class="fas fa-tasks me-1"></i>Active Downloads
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#download-logs" type="button" role="tab">
+                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#download-logs"
+                    type="button" role="tab">
                     <i class="fas fa-terminal me-1"></i>Logs
                 </button>
             </li>
         </ul>
-        
+
         <!-- Tab Content -->
         <div class="tab-content" id="sidebarTabContent">
             <!-- Active Downloads Tab -->
@@ -87,7 +92,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Logs Tab -->
             <div class="tab-pane fade" id="download-logs" role="tabpanel">
                 <div class="card border-top-0 rounded-top-0">
@@ -141,25 +146,25 @@
 
 {% block scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         // Khôi phục trạng thái ban đầu
         restoreAppState();
-        
+
         // Thêm event listener cho filter log
         const logFilter = document.getElementById('log-filter');
         if (logFilter) {
-            logFilter.addEventListener('change', function() {
+            logFilter.addEventListener('change', function () {
                 filterLogs(this.value);
             });
         }
-        
+
         // Function để lọc logs (nếu không có sẵn ở base.html)
         function filterLogs(filterType) {
             const logLines = document.querySelectorAll('.log-line');
-            
+
             logLines.forEach(line => {
                 const level = line.dataset.level;
-                
+
                 if (filterType === 'all') {
                     line.style.display = '';
                 } else if (filterType === 'info' && level === 'info') {
@@ -173,19 +178,19 @@
                 }
             });
         }
-        
+
         // Thêm event listeners cho các nút view-details
         document.querySelectorAll('.view-details-btn').forEach(button => {
-            button.addEventListener('click', function() {
+            button.addEventListener('click', function () {
                 showDownloadDetails(this.getAttribute('data-id'));
             });
         });
-        
+
         // Function để hiển thị chi tiết download
         function showDownloadDetails(downloadId) {
             const modal = new bootstrap.Modal(document.getElementById('download-details-modal'));
             const contentDiv = document.getElementById('download-details-content');
-            
+
             // Hiển thị trạng thái đang tải
             contentDiv.innerHTML = `
                 <div class="text-center py-3">
@@ -195,9 +200,9 @@
                     <p class="mt-2">Loading download details...</p>
                 </div>
             `;
-            
+
             modal.show();
-            
+
             // Fetch thông tin download
             fetch(`/api/status/${downloadId}?logs=100`)
                 .then(response => response.json())
@@ -206,13 +211,13 @@
                         // Format status và logs
                         const status = data.status;
                         const logs = data.logs || [];
-                        
+
                         let statusClass = '';
                         if (status.status === 'completed') statusClass = 'text-success';
                         else if (status.status === 'failed') statusClass = 'text-danger';
                         else if (status.status === 'in_progress') statusClass = 'text-primary';
                         else statusClass = 'text-secondary';
-                        
+
                         // Tạo nội dung
                         let content = `
                             <h5>Download Information</h5>
@@ -230,7 +235,7 @@
                                     <td class="${statusClass}">${status.status.charAt(0).toUpperCase() + status.status.slice(1)}</td>
                                 </tr>
                             `;
-                            
+
                         if (status.submit_time) {
                             content += `
                                 <tr>
@@ -239,7 +244,7 @@
                                 </tr>
                             `;
                         }
-                        
+
                         if (status.start_time) {
                             content += `
                                 <tr>
@@ -248,7 +253,7 @@
                                 </tr>
                             `;
                         }
-                        
+
                         if (status.end_time) {
                             content += `
                                 <tr>
@@ -256,7 +261,7 @@
                                     <td>${new Date(status.end_time * 1000).toLocaleString()}</td>
                                 </tr>
                             `;
-                            
+
                             // Calculate duration
                             const duration = Math.round((status.end_time - status.start_time) / 60);
                             content += `
@@ -266,7 +271,7 @@
                                 </tr>
                             `;
                         }
-                        
+
                         if (status.file_path) {
                             content += `
                                 <tr>
@@ -275,7 +280,7 @@
                                 </tr>
                             `;
                         }
-                        
+
                         if (status.dropbox_url) {
                             content += `
                                 <tr>
@@ -288,14 +293,14 @@
                                 </tr>
                             `;
                         }
-                        
+
                         content += `
                             </table>
                             
                             <h5 class="mt-4">Download Logs</h5>
                             <div class="log-container" style="max-height: 300px; overflow-y: auto;">
                         `;
-                        
+
                         if (logs.length > 0) {
                             content += `<div class="small">`;
                             logs.forEach(log => {
@@ -303,16 +308,16 @@
                                 if (log.includes('[INFO]')) logClass = 'text-primary';
                                 else if (log.includes('[WARNING]')) logClass = 'text-warning';
                                 else if (log.includes('[ERROR]')) logClass = 'text-danger';
-                                
+
                                 content += `<div class="${logClass}">${log}</div>`;
                             });
                             content += `</div>`;
                         } else {
                             content += `<p class="text-muted">No logs available</p>`;
                         }
-                        
+
                         content += `</div>`;
-                        
+
                         contentDiv.innerHTML = content;
                     } else {
                         contentDiv.innerHTML = `

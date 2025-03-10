@@ -10,65 +10,66 @@
                 <h5><i class="fas fa-book me-2"></i>API Documentation</h5>
             </div>
             <div class="card-body">
-                <p class="lead">Welcome to the Novel Downloader API documentation. This page describes the available endpoints and how to use them.</p>
-                
+                <p class="lead">Welcome to the Novel Downloader API documentation. This page describes the available
+                    endpoints and how to use them.</p>
+
                 <h5 class="mt-4">Base URL</h5>
                 <pre><code>{{ base_url }}</code></pre>
-                
+
                 <h5 class="mt-4">Authentication</h5>
                 <p>No authentication is required to use the API endpoints.</p>
-                
+
                 <h5 class="mt-4">Endpoints</h5>
-                
+
                 <!-- Download Endpoint -->
                 <div class="endpoint-card border rounded p-3 mb-4">
                     <h6 class="border-bottom pb-2 d-flex align-items-center">
                         <span class="badge bg-success me-2">POST</span> /api/download
                     </h6>
                     <p>Start a novel download task.</p>
-                    
+
                     <h6>Request Body</h6>
                     <pre class="bg-light p-3 rounded"><code>{
   "url": "https://metruyencv.com/truyen/...",  // Required: URL of the novel
   "cookie": "your_access_token"                // Optional: Access token for premium content
 }</code></pre>
-                    
+
                     <h6 class="mt-3">Response</h6>
                     <pre class="bg-light p-3 rounded"><code>{
   "success": true,
   "download_id": "download_1615482631",  // ID to track the download
   "message": "Download has been queued"
 }</code></pre>
-                    
+
                     <h6 class="mt-3">Error Response</h6>
                     <pre class="bg-light p-3 rounded"><code>{
   "success": false,
   "error": "Error message"
 }</code></pre>
-                    
+
                     <h6 class="mt-3">Example</h6>
                     <pre class="bg-light p-3 rounded"><code>curl -X POST {{ base_url }}/api/download \
   -H "Content-Type: application/json" \
   -d '{"url": "https://metruyencv.com/truyen/my-novel"}'</code></pre>
                 </div>
-                
+
                 <!-- Status Endpoint -->
                 <div class="endpoint-card border rounded p-3 mb-4">
                     <h6 class="border-bottom pb-2 d-flex align-items-center">
                         <span class="badge bg-primary me-2">GET</span> /api/status/:download_id
                     </h6>
                     <p>Get the status of a download task.</p>
-                    
+
                     <h6>URL Parameters</h6>
                     <ul>
                         <li><code>download_id</code> - The ID of the download task</li>
                     </ul>
-                    
+
                     <h6>Query Parameters</h6>
                     <ul>
                         <li><code>logs</code> - Number of log entries to return (default: 20)</li>
                     </ul>
-                    
+
                     <h6 class="mt-3">Response</h6>
                     <pre class="bg-light p-3 rounded"><code>{
   "success": true,
@@ -87,29 +88,30 @@
     "2023-03-01 12:35:01 - [INFO] - Downloaded chapter 1"
   ]
 }</code></pre>
-                    
+
                     <h6 class="mt-3">Error Response</h6>
                     <pre class="bg-light p-3 rounded"><code>{
   "success": false,
   "error": "Download ID not found"
 }</code></pre>
-                    
+
                     <h6 class="mt-3">Example</h6>
-                    <pre class="bg-light p-3 rounded"><code>curl {{ base_url }}/api/status/download_1615482631?logs=50</code></pre>
+                    <pre
+                        class="bg-light p-3 rounded"><code>curl {{ base_url }}/api/status/download_1615482631?logs=50</code></pre>
                 </div>
-                
+
                 <!-- Logs Endpoint -->
                 <div class="endpoint-card border rounded p-3 mb-4">
                     <h6 class="border-bottom pb-2 d-flex align-items-center">
                         <span class="badge bg-primary me-2">GET</span> /api/logs
                     </h6>
                     <p>Get recent logs from the system.</p>
-                    
+
                     <h6>Query Parameters</h6>
                     <ul>
                         <li><code>n</code> - Number of log entries to return (default: 100)</li>
                     </ul>
-                    
+
                     <h6 class="mt-3">Response</h6>
                     <pre class="bg-light p-3 rounded"><code>{
   "success": true,
@@ -118,20 +120,21 @@
     "2023-03-01 12:35:01 - [INFO] - New download queued"
   ]
 }</code></pre>
-                    
+
                     <h6 class="mt-3">Error Response</h6>
                     <pre class="bg-light p-3 rounded"><code>{
   "success": false,
   "error": "Error getting logs"
 }</code></pre>
-                    
+
                     <h6 class="mt-3">Example</h6>
                     <pre class="bg-light p-3 rounded"><code>curl {{ base_url }}/api/logs?n=50</code></pre>
                 </div>
-                
+
                 <h5 class="mt-4">WebSocket Events</h5>
-                <p>The API also provides real-time updates via WebSocket. Connect to the WebSocket server at the base URL to receive these events.</p>
-                
+                <p>The API also provides real-time updates via WebSocket. Connect to the WebSocket server at the base
+                    URL to receive these events.</p>
+
                 <div class="table-responsive">
                     <table class="table table-bordered">
                         <thead>
@@ -145,45 +148,53 @@
                             <tr>
                                 <td><code>log_update</code></td>
                                 <td>Emitted when a new log entry is created</td>
-                                <td><pre><code>{
+                                <td>
+                                    <pre><code>{
   "download_id": "download_1615482631",
   "level": "info",
   "message": "Downloaded chapter 1",
   "timestamp": 1615482700
-}</code></pre></td>
+}</code></pre>
+                                </td>
                             </tr>
                             <tr>
                                 <td><code>status_update</code></td>
                                 <td>Emitted when a download status changes</td>
-                                <td><pre><code>{
+                                <td>
+                                    <pre><code>{
   "download_id": "download_1615482631",
   "status": "in_progress",
   "message": "Starting download"
-}</code></pre></td>
+}</code></pre>
+                                </td>
                             </tr>
                             <tr>
                                 <td><code>download_completed</code></td>
                                 <td>Emitted when a download completes successfully</td>
-                                <td><pre><code>{
+                                <td>
+                                    <pre><code>{
   "download_id": "download_1615482631",
   "url": "https://metruyencv.com/...",
   "file_path": "/path/to/novel.epub",
   "dropbox_url": "https://..."
-}</code></pre></td>
+}</code></pre>
+                                </td>
                             </tr>
                             <tr>
                                 <td><code>download_failed</code></td>
                                 <td>Emitted when a download fails</td>
-                                <td><pre><code>{
+                                <td>
+                                    <pre><code>{
   "download_id": "download_1615482631",
   "url": "https://metruyencv.com/...",
   "error": "Error message"
-}</code></pre></td>
+}</code></pre>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-                
+
                 <h5 class="mt-4">WebSocket Example</h5>
                 <pre class="bg-light p-3 rounded"><code>// JavaScript example
 const socket = io('{{ base_url }}');
@@ -204,22 +215,24 @@ socket.on('download_completed', (data) => {
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-4">
         <!-- Tab Navigation -->
         <ul class="nav nav-tabs" id="sidebarTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="downloads-tab" data-bs-toggle="tab" data-bs-target="#active-downloads" type="button" role="tab">
+                <button class="nav-link active" id="downloads-tab" data-bs-toggle="tab"
+                    data-bs-target="#active-downloads" type="button" role="tab">
                     <i class="fas fa-tasks me-1"></i>Active Downloads
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#download-logs" type="button" role="tab">
+                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#download-logs"
+                    type="button" role="tab">
                     <i class="fas fa-terminal me-1"></i>Logs
                 </button>
             </li>
         </ul>
-        
+
         <!-- Tab Content -->
         <div class="tab-content" id="sidebarTabContent">
             <!-- Active Downloads Tab -->
@@ -234,7 +247,7 @@ socket.on('download_completed', (data) => {
                     </div>
                 </div>
             </div>
-            
+
             <!-- Logs Tab -->
             <div class="tab-pane fade" id="download-logs" role="tabpanel">
                 <div class="card border-top-0 rounded-top-0">
@@ -263,25 +276,25 @@ socket.on('download_completed', (data) => {
 
 {% block scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         // Khôi phục trạng thái ban đầu
         restoreAppState();
-        
+
         // Thêm event listener cho filter log
         const logFilter = document.getElementById('log-filter');
         if (logFilter) {
-            logFilter.addEventListener('change', function() {
+            logFilter.addEventListener('change', function () {
                 filterLogs(this.value);
             });
         }
-        
+
         // Function để lọc logs (nếu không có sẵn ở base.html)
         function filterLogs(filterType) {
             const logLines = document.querySelectorAll('.log-line');
-            
+
             logLines.forEach(line => {
                 const level = line.dataset.level;
-                
+
                 if (filterType === 'all') {
                     line.style.display = '';
                 } else if (filterType === 'info' && level === 'info') {
