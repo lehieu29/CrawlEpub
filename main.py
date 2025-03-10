@@ -323,6 +323,11 @@ def handle_disconnect():
 
 # Run the application
 if __name__ == '__main__':
+    # Create necessary directories
+    os.makedirs(NOVEL_TEMP, exist_ok=True)
+    os.makedirs(NOVEL_OUTPUT, exist_ok=True)
+    os.makedirs(LOG_DIR, exist_ok=True)
+            
     # Determine port from environment variable or use default
     port = int(os.environ.get('PORT', 5000))
 

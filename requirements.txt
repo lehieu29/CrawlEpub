@@ -9,3 +9,5 @@ dropbox
 python-dotenv
 gunicorn
 flask-cors
+gevent
+gevent-websocket
