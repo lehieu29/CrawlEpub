@@ -120,10 +120,10 @@ def download_worker():
     while True:
         try:
             # Get a task from the queue
-            logger.info("Worker thread waiting for task...")
+            logger.info("Worker thread waiting for task... (current thread ID: %s)", threading.get_ident())
 
             try:
-                task = download_queue.get(timeout=5)  # Chờ 5 giây
+                task = download_queue.get(block=True, timeout=10)  # Chờ 5 giây
                 download_id = task['id']
                 url = task['url']
                 cookie = task.get('cookie', '')
@@ -233,7 +233,7 @@ def start_worker_thread():
         logger.error(f"Error starting worker thread: {str(e)}")
         return False
     
-start_worker_thread()
+# start_worker_thread()
 
 # Web Routes
 @app.route('/')
@@ -310,12 +310,18 @@ def start_download():
         }
 
         # Kiểm tra trạng thái của queue trước khi put
-        logger.info(f"Queue size before put: {download_queue.qsize()}")
+        logger.info(f"Current thread: {threading.current_thread().name}")
+        logger.info(f"Queue before put - size: {download_queue.qsize()}")
 
-        download_queue.put(task)
-
-        # Kiểm tra trạng thái của queue sau khi put
-        logger.info(f"Queue size after put: {download_queue.qsize()}")
+        # Đảm bảo task được đưa vào queue
+        try:
+            download_queue.put(task, block=False)
+            logger.info(f"Task added to queue successfully")
+        except queue.Full:
+            logger.error("Queue is full. Could not add task.")
+            return jsonify({'success': False, 'error': 'Download queue is full'}), 500
+        
+        logger.info(f"Queue after put - size: {download_queue.qsize()}")
 
         # Initialize download status
         active_downloads[download_id] = {
