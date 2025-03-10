@@ -119,10 +119,12 @@ def download_worker():
     while True:
         try:
             # Get a task from the queue
+            logger.info("Worker thread waiting for task...")
             task = download_queue.get()
             download_id = task['id']
             url = task['url']
             cookie = task.get('cookie', '')
+            logger.info(f"Worker thread got task: {download_id}")
 
             # Update status
             active_downloads[download_id] = {
@@ -205,6 +207,10 @@ def ping():
     vn_timestamp = time.strftime("%Y-%m-%d %H:%M:%S", 
                                 time.gmtime(time.mktime(utc_time) + 7*3600))
     return render_template('ping.html', timestamp=vn_timestamp)
+
+@app.route('/thread_status')
+def thread_status():
+    return f"Worker thread is alive: {worker_thread.is_alive()}"
 
 # API Routes
 @app.route('/api/download', methods=['POST'])
