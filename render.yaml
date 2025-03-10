@@ -3,7 +3,7 @@ services:
     name: novel-downloader-api
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 -b 0.0.0.0:$PORT "wsgi:create_app()"
+    startCommand: gunicorn --worker-class eventlet -w 1 -b 0.0.0.0:$PORT "wsgi:create_app()"
     envVars:
       - key: SECRET_KEY
         generateValue: true
