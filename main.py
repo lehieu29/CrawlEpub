@@ -121,64 +121,77 @@ def download_worker():
         try:
             # Get a task from the queue
             logger.info("Worker thread waiting for task...")
-            task = download_queue.get()
-            download_id = task['id']
-            url = task['url']
-            cookie = task.get('cookie', '')
-            logger.info(f"Worker thread got task: {download_id}")
 
-            # Update status
-            active_downloads[download_id] = {
-                'status': 'in_progress',
-                'url': url,
-                'start_time': time.time(),
-                'progress': 0
-            }
+            try:
+                task = download_queue.get(timeout=5)  # Chờ 5 giây
+                download_id = task['id']
+                url = task['url']
+                cookie = task.get('cookie', '')
+                logger.info(f"Worker thread got task: {download_id}")
 
-            # Emit status update
-            socketio.emit('status_update', {
-                'download_id': download_id,
-                'status': 'in_progress',
-                'message': f"Starting download for {url}"
-            })
-
-            # Run the download
-            logger.info(f"Starting download for URL: {url} with ID: {download_id}")
-            result = downloader.download_novel(url, cookie=cookie, download_id=download_id)
-
-            if result['success']:
-                # Update status on success
-                active_downloads[download_id]['status'] = 'completed'
-                active_downloads[download_id]['file_path'] = result['file_path']
-                active_downloads[download_id]['dropbox_url'] = result.get('dropbox_url', '')
-                active_downloads[download_id]['end_time'] = time.time()
-
-                # Emit completion event
-                socketio.emit('download_completed', {
-                    'download_id': download_id,
+                # Update status
+                active_downloads[download_id] = {
+                    'status': 'in_progress',
                     'url': url,
-                    'file_path': result['file_path'],
-                    'dropbox_url': result.get('dropbox_url', '')
+                    'start_time': time.time(),
+                    'progress': 0
+                }
+
+                # Emit status update
+                socketio.emit('status_update', {
+                    'download_id': download_id,
+                    'status': 'in_progress',
+                    'message': f"Starting download for {url}"
                 })
 
-                logger.info(f"Download completed for ID: {download_id}")
-            else:
-                # Update status on failure
-                active_downloads[download_id]['status'] = 'failed'
-                active_downloads[download_id]['error'] = result['error']
-                active_downloads[download_id]['end_time'] = time.time()
+                # Run the download
+                logger.info(f"Starting download for URL: {url} with ID: {download_id}")
+                result = downloader.download_novel(url, cookie=cookie, download_id=download_id)
 
-                # Emit failure event
-                socketio.emit('download_failed', {
-                    'download_id': download_id,
-                    'url': url,
-                    'error': result['error']
-                })
+                if result['success']:
+                    # Update status on success
+                    active_downloads[download_id]['status'] = 'completed'
+                    active_downloads[download_id]['file_path'] = result['file_path']
+                    active_downloads[download_id]['dropbox_url'] = result.get('dropbox_url', '')
+                    active_downloads[download_id]['end_time'] = time.time()
 
-                logger.error(f"Download failed for ID: {download_id}: {result['error']}")
+                    # Emit completion event
+                    socketio.emit('download_completed', {
+                        'download_id': download_id,
+                        'url': url,
+                        'file_path': result['file_path'],
+                        'dropbox_url': result.get('dropbox_url', '')
+                    })
 
-            # Mark task as done
-            download_queue.task_done()
+                    logger.info(f"Download completed for ID: {download_id}")
+                else:
+                    # Update status on failure
+                    active_downloads[download_id]['status'] = 'failed'
+                    active_downloads[download_id]['error'] = result['error']
+                    active_downloads[download_id]['end_time'] = time.time()
+
+                    # Emit failure event
+                    socketio.emit('download_failed', {
+                        'download_id': download_id,
+                        'url': url,
+                        'error': result['error']
+                    })
+
+                    logger.error(f"Download failed for ID: {download_id}: {result['error']}")
+
+                # Mark task as done
+                download_queue.task_done()
+            except queue.Empty:
+                # Log nếu không có task trong 5 giây
+                logger.info("No task in queue for 5 seconds")
+                
+                # Kiểm tra trạng thái queue
+                logger.info(f"Current queue size: {download_queue.qsize()}")
+                
+                # Ngủ ngắn để tránh CPU spinning
+                time.sleep(1)
+                
+                continue
 
         except Exception as e:
             logger.error(f"Error in download worker: {str(e)}")
@@ -243,7 +256,7 @@ def ping():
                                 time.gmtime(time.mktime(utc_time) + 7*3600))
     return render_template('ping.html', timestamp=vn_timestamp)
 
-@app.route('/thread_status')
+@app.route('/thread/status')
 def thread_status():
     global worker_thread
 
@@ -295,7 +308,14 @@ def start_download():
             'url': url,
             'cookie': cookie
         }
+
+        # Kiểm tra trạng thái của queue trước khi put
+        logger.info(f"Queue size before put: {download_queue.qsize()}")
+
         download_queue.put(task)
+
+        # Kiểm tra trạng thái của queue sau khi put
+        logger.info(f"Queue size after put: {download_queue.qsize()}")
 
         # Initialize download status
         active_downloads[download_id] = {
