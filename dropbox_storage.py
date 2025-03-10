@@ -41,10 +41,10 @@ class DropboxStorage:
                 self._log('info', f"Khởi tạo Dropbox với token (độ dài: {token_length} chars)")
                 
                 # Log first and last 5 chars of token (safe for debugging without exposing full token)
-                # if token_length > 10:
-                #    token_prefix = self.access_token[:5]
-                #    token_suffix = self.access_token[-5:]
-                #    self._log('info', f"Token starts with '{token_prefix}...' and ends with '...{token_suffix}'")
+                if token_length > 10:
+                    token_prefix = self.access_token[:5]
+                    token_suffix = self.access_token[-5:]
+                    self._log('info', f"Token bắt đầu từ '{token_prefix}...' và kết thúc bằng '...{token_suffix}'")
 
                 self.dbx = dropbox.Dropbox(self.access_token)
 
