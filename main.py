@@ -3,7 +3,7 @@ import os
 import time
 import json
 import threading
-import queue
+import eventlet.queue as queue
 import hashlib
 import datetime
 from flask import Flask, request, jsonify, render_template
