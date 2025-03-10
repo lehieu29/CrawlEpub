@@ -1,28 +1,19 @@
-# wsgi.py - Phiên bản đơn giản
-# Theo mặc định, monkey patching đã được thực hiện trong cả hai framework
-
 import os
-from flask import Flask
-from flask_socketio import SocketIO
+# First, do monkey-patching before importing any other modules
+from gevent import monkey
+monkey.patch_all()
 
-# Tạo ứng dụng Flask cơ bản
-app = Flask(__name__)
-socketio = SocketIO(app)
+# Then import Flask app
+from main import app, socketio
 
-@app.route('/')
-def home():
-    return 'Novel Downloader API is running!'
-
-@app.route('/ping')
-def ping():
-    return 'pong'
-
-# Hàm này sẽ được gọi bởi Gunicorn
+# This function will be called by Gunicorn
 def create_app():
-    return app
+    port = int(os.environ.get('PORT', 'not set'))
+    print(f"PORT environment variable: {port}")
+    return socketio.middleware(app)
 
-# Nếu chạy trực tiếp file này
+# If running this file directly
 if __name__ == "__main__":
-    # Sử dụng PORT từ biến môi trường
+    # Make sure to use the PORT environment variable
     port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port)
+    socketio.run(app, host='0.0.0.0', port=port)
