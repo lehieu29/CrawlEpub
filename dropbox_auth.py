@@ -128,27 +128,51 @@ class DropboxAuth:
     
     def _exchange_code_for_tokens(self, code):
         """Exchange authorization code for access and refresh tokens"""
+        data = {
+            'code': code,
+            'grant_type': 'authorization_code',
+            'client_id': self.client_id,
+            'client_secret': self.client_secret,
+            'redirect_uri': self.redirect_uri,
+        }
+        
         try:
-            data = {
-                'code': code,
-                'grant_type': 'authorization_code',
-                'client_id': self.client_id,
-                'client_secret': self.client_secret,
-                'redirect_uri': self.redirect_uri,
-            }
-            
-            response = requests.post('https://api.dropboxapi.com/oauth2/token', data=data)
+            # Thêm timeout để tránh request bị treo vô hạn
+            response = requests.post(
+                'https://api.dropboxapi.com/oauth2/token', 
+                data=data, 
+                timeout=30  # Thêm timeout 30 giây
+            )
             response.raise_for_status()
+            
+            # Xử lý response chỉ khi request thành công
             token_data = response.json()
             
             # Add expiration time for easier checking later
             if 'expires_in' in token_data:
                 token_data['expires_at'] = int(time.time()) + token_data['expires_in']
                 
-            self._log('info', (f"Successfully exchanged code for tokens. Expires in {token_data.get('expires_in')} seconds"))
+            self._log('info', f"Successfully exchanged code for tokens. Expires in {token_data.get('expires_in')} seconds")
             return token_data
+            
+        except requests.exceptions.Timeout:
+            # Xử lý riêng lỗi timeout
+            self._log('error', "Request timed out while exchanging code for tokens")
+            return None
+            
+        except requests.exceptions.RequestException as e:
+            # Xử lý các lỗi liên quan đến request
+            self._log('error', f"Error making request to Dropbox API: {str(e)}")
+            return None
+            
+        except (ValueError, KeyError, TypeError) as e:
+            # Xử lý lỗi khi parse JSON hoặc truy cập dữ liệu
+            self._log('error', f"Error processing response data: {str(e)}")
+            return None
+            
         except Exception as e:
-            self._log('error', (f"Error exchanging code for tokens: {str(e)}"))
+            # Xử lý các lỗi khác không nằm trong các loại trên
+            self._log('error', f"Unexpected error exchanging code for tokens: {str(e)}")
             return None
 
     def refresh_access_token(self):
