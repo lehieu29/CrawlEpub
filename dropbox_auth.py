@@ -15,6 +15,7 @@ class DropboxAuth:
         self.client_secret = os.getenv('DROPBOX_APP_SECRET', '')
         self.redirect_uri = None  # Will be set dynamically based on request
         self.token_file = os.path.join(os.getcwd(), 'secure', 'dropbox_tokens.json')
+        self.access_token = ''
 
         self._log('info', f'ClientID: {self.client_id}')
         
