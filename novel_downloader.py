@@ -177,46 +177,53 @@ class NovelDownloader:
 
     def _make_request(self, url, is_api=False, is_mtc=True, cookie='', download_id=None):
         """Make an HTTP request with appropriate headers"""
-        try:
-            headers = {
-                'user-agent': self._generate_user_agent(),
-                'referer': 'https://metruyencv.com/' if is_mtc else 'https://tangthuvien.net/'
-            }
+        headers = {
+            'user-agent': self._generate_user_agent(),
+            'referer': 'https://metruyencv.com/' if is_mtc else 'https://tangthuvien.net/'
+        }
 
-            # Add cookie if provided for metruyenchu
-            if is_mtc and cookie:
-                headers['cookie'] = 'accessToken=' + cookie
+        # Add cookie if provided for metruyenchu
+        if is_mtc and cookie:
+            headers['cookie'] = 'accessToken=' + cookie
 
-            # Add headers for API requests
-            if is_api and is_mtc:
-                headers['authorization'] = f'Bearer {cookie}'
-                headers['accept'] = 'application/json, text/plain, */*'
+        # Add headers for API requests
+        if is_api and is_mtc:
+            headers['authorization'] = f'Bearer {cookie}'
+            headers['accept'] = 'application/json, text/plain, */*'
 
-            # Try up to 3 times if there's an error
-            max_retries = 3
-            for attempt in range(max_retries):
-                try:
-                    print(f"Making request to {url} with headers: {headers}")
-                    response = requests.get(url, headers=headers)
-                    response.raise_for_status()
+        # Try up to 3 times if there's an error
+        max_retries = 3
+        last_exception = None
+        
+        for attempt in range(max_retries):
+            try:
+                # Thêm timeout để tránh request bị treo vô hạn
+                print(f"Making request to {url} with headers: {headers}")
+                response = requests.get(url, headers=headers, timeout=30)
+                response.raise_for_status()
 
-                    # Return JSON for API requests, text otherwise
-                    if is_api and is_mtc:
-                        return response.json()
-                    else:
-                        return response.text
-                except Exception as e:
-                    error_message = f"Error loading page {url}, attempt {attempt+1}/{max_retries}: {str(e)}"
-                    self._log('error', error_message, download_id)
-                    if attempt < max_retries - 1:
-                        delay_time = random.uniform(1, 2)
-                        self._delay(delay_time, download_id)
-                    else:
-                        raise Exception(f"Failed after {max_retries} attempts: {str(e)}")
-        except Exception as e:
-            self._log('error', f"Unhandled error loading page {url}: {str(e)}", download_id)
-            traceback.print_exc()
-            raise
+                # Return JSON for API requests, text otherwise
+                if is_api and is_mtc:
+                    return response.json()
+                else:
+                    return response.text
+                    
+            except (requests.exceptions.RequestException, requests.exceptions.JSONDecodeError) as e:
+                # Xử lý lỗi cụ thể từ thư viện requests
+                last_exception = e
+                error_message = f"Lỗi khi tải trang {url}, lần thử {attempt+1}/{max_retries}: {str(e)}"
+                self._log('error', error_message, download_id)
+                
+                if attempt < max_retries - 1:
+                    delay_time = random.uniform(1, 2)
+                    self._delay(delay_time, download_id)
+        
+        # Nếu đã thử hết số lần mà vẫn thất bại, ghi log và ném ngoại lệ
+        error_message = f"Thất bại sau {max_retries} lần thử: {str(last_exception)}"
+        self._log('error', error_message, download_id)
+        
+        # Tạo và ném một ngoại lệ mới, không tạo đệ quy
+        raise Exception(error_message)
 
     def _detect_site_type(self, url):
         """Detect the type of website from the URL"""
