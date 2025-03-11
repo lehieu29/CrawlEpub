@@ -204,8 +204,8 @@ def download_worker():
             time.sleep(1)  # Prevent CPU spinning if there's a persistent error
 
 # Start the download worker thread
-# worker_thread = threading.Thread(target=download_worker, daemon=True)
-# worker_thread.start()
+worker_thread = threading.Thread(target=download_worker, daemon=True)
+worker_thread.start()
 
 def monitor_worker_thread():
     global worker_thread
@@ -479,3 +479,5 @@ if __name__ == '__main__':
 
     # Start the server
     socketio.run(app, host='0.0.0.0', port=port)
+
+application = socketio.wsgi_app if hasattr(socketio, 'wsgi_app') else app
