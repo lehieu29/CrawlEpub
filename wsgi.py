@@ -4,10 +4,12 @@ eventlet.monkey_patch()
 
 # Sau đó import các module khác
 import os
-from main import app, socketio
+from main import app, socketio, start_worker_thread
 
 # Hàm này sẽ được gọi bởi Gunicorn
 def create_app():
+    # Khởi động worker thread khi ứng dụng khởi động
+    start_worker_thread()
     return socketio.middleware(app)
 
 # Nếu chạy trực tiếp file này

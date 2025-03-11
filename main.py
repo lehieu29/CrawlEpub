@@ -198,8 +198,8 @@ def download_worker():
             time.sleep(1)  # Prevent CPU spinning if there's a persistent error
 
 # Start the download worker thread
-worker_thread = threading.Thread(target=download_worker, daemon=True)
-worker_thread.start()
+# worker_thread = threading.Thread(target=download_worker, daemon=True)
+# worker_thread.start()
 
 def monitor_worker_thread():
     global worker_thread
@@ -219,11 +219,11 @@ monitor_thread.start()
 def start_worker_thread():
     global worker_thread
     try:
-        # Make sure any old thread is properly terminated
+        # Chấm dứt thread cũ nếu còn tồn tại
         if 'worker_thread' in globals() and worker_thread is not None:
             logger.info("Terminating old worker thread if it exists")
         
-        # Create and start new thread
+        # Tạo và khởi động thread mới
         logger.info("Starting download worker thread")
         worker_thread = threading.Thread(target=download_worker, daemon=True)
         worker_thread.start()
