@@ -10,7 +10,11 @@ from main import app, socketio, start_worker_thread
 def create_app():
     # Khởi động worker thread khi ứng dụng khởi động
     start_worker_thread()
-    return socketio.middleware(app)
+    # Trả về ứng dụng Flask thông thường
+    return app
+
+# Biến Gunicorn sẽ sử dụng
+application = socketio.wrap_wsgi(create_app())
 
 # Nếu chạy trực tiếp file này
 if __name__ == "__main__":

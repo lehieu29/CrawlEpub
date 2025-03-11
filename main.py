@@ -21,6 +21,7 @@ load_dotenv()
 from novel_downloader import NovelDownloader
 from dropbox_storage import DropboxStorage
 from keep_alive import KeepAlive
+from dropbox_auth import DropboxAuth
 
 # Tạo secret key duy nhất cho mỗi phiên Replit
 if not os.environ.get('SECURE_PATH_KEY'):
@@ -46,10 +47,14 @@ NOVEL_TEMP = get_secure_path(os.path.join(os.getcwd(), 'novel_temp'))
 NOVEL_OUTPUT = get_secure_path(os.path.join(os.getcwd(), 'novel_output'))
 LOG_DIR = get_secure_path(os.path.join(os.getcwd(), 'logs'))
 
+# Create secure directory for tokens
+SECURE_DIR = get_secure_path(os.path.join(os.getcwd(), 'secure'))
+
 # Create necessary directories
 os.makedirs(NOVEL_TEMP, exist_ok=True)
 os.makedirs(NOVEL_OUTPUT, exist_ok=True)
 os.makedirs(LOG_DIR, exist_ok=True)
+os.makedirs(SECURE_DIR, exist_ok=True)
 
 # Initialize keep-alive system
 keep_alive = KeepAlive(interval=300)  # Ping every 5 minutes
@@ -102,10 +107,8 @@ download_queue = queue.Queue()
 active_downloads = {}
 
 # Initialize Dropbox storage
-dropbox_token = os.getenv('DROPBOX_ACCESS_TOKEN')
-if not dropbox_token:
-    logger.warning("DROPBOX_ACCESS_TOKEN not found! Dropbox storage will not work.")
-dropbox_storage = DropboxStorage(logger=logger, socket=socketio, access_token=dropbox_token)
+dropbox_auth = DropboxAuth(logger=logger)
+dropbox_storage = DropboxStorage(logger=logger, socket=socketio, dropbox_auth=dropbox_auth)
 
 # Initialize the novel downloader with the specified parameters
 downloader = NovelDownloader(
@@ -113,6 +116,9 @@ downloader = NovelDownloader(
     socket=socketio,
     dropbox=dropbox_storage
 )
+
+# Initialize dropbox auth with the app
+dropbox_auth.init_app(app)
 
 # Background worker to process download tasks
 def download_worker():
@@ -285,6 +291,34 @@ def ensure_worker_thread():
         except Exception as e:
             logger.error(f"Failed to ensure worker thread: {e}")
             return f"Failed to ensure worker thread: {e}"
+        
+# New route for Dropbox status page
+@app.route('/dropbox/status')
+def dropbox_status_page():
+    is_connected = dropbox_auth.is_authorized()
+    context = {
+        'is_connected': is_connected,
+        'account_info': None,
+        'token_expires_in': None,
+        'token_expires_time': None
+    }
+    
+    if is_connected:
+        # Get account info
+        account_info = dropbox_auth.get_account_info()
+        context['account_info'] = account_info
+        
+        # Get token expiration info
+        tokens = dropbox_auth.get_tokens()
+        if tokens and 'expires_at' in tokens:
+            expires_at = tokens['expires_at']
+            expires_in = expires_at - int(time.time())
+            context['token_expires_in'] = expires_in
+            # Format expiration time
+            expires_time = datetime.datetime.fromtimestamp(expires_at).strftime('%Y-%m-%d %H:%M:%S')
+            context['token_expires_time'] = expires_time
+    
+    return render_template('dropbox_status.html', **context)
 
 # API Routes
 @app.route('/api/download', methods=['POST'])

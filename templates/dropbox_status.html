@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Dropbox Status - Novel Downloader API{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 col-md-10 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fab fa-dropbox me-2"></i>Dropbox Connection Status</h5>
+            </div>
+            <div class="card-body">
+                {% if is_connected %}
+                    <div class="alert alert-success">
+                        <h4 class="alert-heading"><i class="fas fa-check-circle me-2"></i>Connected to Dropbox</h4>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>Account:</strong>
+                            </div>
+                            <div class="col-md-8">
+                                {{ account_info.name.display_name }} ({{ account_info.email }})
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-4">
+                                <strong>Account Type:</strong>
+                            </div>
+                            <div class="col-md-8">
+                                {{ account_info.account_type.get('.tag', 'Unknown') | title }}
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-4">
+                                <strong>Token Expires:</strong>
+                            </div>
+                            <div class="col-md-8">
+                                {% if token_expires_in %}
+                                    In {{ token_expires_in }} seconds ({{ token_expires_time }})
+                                {% else %}
+                                    Unknown
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <a href="/dropbox/disconnect" class="btn btn-danger" onclick="return confirm('Are you sure you want to disconnect your Dropbox account?')">
+                                <i class="fas fa-unlink me-2"></i>Disconnect Dropbox
+                            </a>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Not Connected to Dropbox</h4>
+                        <p>The Novel Downloader API is not connected to a Dropbox account. Connect your Dropbox to enable cloud storage for downloaded novels.</p>
+                        <hr>
+                        <p class="mb-0">Click the button below to connect your Dropbox account.</p>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <a href="/dropbox/auth" class="btn btn-primary btn-lg">
+                            <i class="fab fa-dropbox me-2"></i>Connect to Dropbox
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle me-2"></i>About Dropbox Integration</h5>
+            </div>
+            <div class="card-body">
+                <p>The Dropbox integration allows downloaded novels to be automatically uploaded to your Dropbox account. This provides the following benefits:</p>
+                
+                <ul>
+                    <li>Access your novels from any device with Dropbox installed</li>
+                    <li>Save storage space on your server</li>
+                    <li>Easily share novels with your other devices</li>
+                    <li>Automatically backup your novel collection</li>
+                </ul>
+                
+                <p>The application requests the following permissions from Dropbox:</p>
+                <ul>
+                    <li><strong>files.content.write</strong>: To upload novels to your Dropbox</li>
+                    <li><strong>files.content.read</strong>: To check if novels already exist and read them</li>
+                    <li><strong>sharing.write</strong>: To create shareable links for downloads</li>
+                </ul>
+                
+                <div class="mt-3">
+                    <a href="/" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

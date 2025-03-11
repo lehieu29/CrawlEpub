@@ -7,10 +7,12 @@ import time
 import json
 
 class DropboxStorage:
-    def __init__(self, logger=None, socket=None, access_token=None):
+    def __init__(self, logger=None, socket=None, dropbox_auth=None):
         self.logger = logger or logging.getLogger('dropbox_storage')
         self.socket = socket
-        self.access_token = access_token
+        self.dropbox_auth = dropbox_auth
+        self.dbx = None
+        self.is_active = False
         self._initialize_client()
 
     def _log(self, level, message, download_id=None):
@@ -33,38 +35,59 @@ class DropboxStorage:
             })
 
     def _initialize_client(self):
-        """Initialize Dropbox client if access token is available"""
-        if self.access_token:
-            try:
-                # Log token length for debugging
-                token_length = len(self.access_token) if self.access_token else 0
-                self._log('info', f"Khởi tạo Dropbox với token (độ dài: {token_length} chars)")
-                
-                # Log first and last 5 chars of token (safe for debugging without exposing full token)
-                if token_length > 10:
-                    token_prefix = self.access_token[:5]
-                    token_suffix = self.access_token[-5:]
-                    self._log('info', f"Token bắt đầu từ '{token_prefix}...' và kết thúc bằng '...{token_suffix}'")
-
-                self.dbx = dropbox.Dropbox(self.access_token)
-
-                # Check if the access token is valid
-                self._log('info', "Đang cố gắng lấy thông tin tài khoản để xác minh mã token...")
-                account = self.dbx.users_get_current_account()
-                self._log('info', f"Dropbox đã được kết nối cho tài khoản: {account.name.display_name} (Email: {account.email})")
-                self.is_active = True
-            except AuthError as e:
-                self._log('error', f"Lỗi xác thực Dropbox: {str(e)}")
-                self._log('error', "Mã token truy cập Dropbox không hợp lệ hoặc quyền truy cập không đủ.")
-                self.is_active = False
-            except Exception as e:
-                self._log('error', f"Lỗi khi khởi tạo Dropbox: {str(e)}")
-                import traceback
-                self._log('error', f"Traceback: {traceback.format_exc()}")
-                self.is_active = False
-        else:
-            self._log('warning', "Không cung cấp mã token truy cập Dropbox")
+        """Initialize Dropbox client if auth is available"""
+        if not self.dropbox_auth:
+            self._log('warning', "No Dropbox authentication handler provided")
             self.is_active = False
+            return
+            
+        try:
+            access_token = self.dropbox_auth.get_access_token()
+            
+            if not access_token:
+                self._log('warning', "No valid Dropbox access token available")
+                self.is_active = False
+                return
+                
+            # Log token length for debugging
+            token_length = len(access_token) if access_token else 0
+            self._log('info', f"Initializing Dropbox with token (length: {token_length} chars)")
+            
+            # Log first and last 5 chars of token (safe for debugging without exposing full token)
+            if token_length > 10:
+                token_prefix = access_token[:5]
+                token_suffix = access_token[-5:]
+                self._log('info', f"Token begins with '{token_prefix}...' and ends with '...{token_suffix}'")
+
+            self.dbx = dropbox.Dropbox(access_token)
+
+            # Check if the access token is valid
+            self._log('info', "Attempting to get account info to verify token...")
+            try:
+                account = self.dbx.users_get_current_account()
+                self._log('info', f"Dropbox connected for account: {account.name.display_name} (Email: {account.email})")
+                self.is_active = True
+            except AuthError:
+                self._log('error', "Dropbox authentication error - token might be invalid")
+                # Try refreshing the token
+                self._log('info', "Attempting to refresh token...")
+                if self.dropbox_auth.refresh_access_token():
+                    # Retry with the new token
+                    self._log('info', "Token refreshed, retrying initialization...")
+                    return self._initialize_client()
+                else:
+                    self._log('error', "Failed to refresh token")
+                    self.is_active = False
+        except Exception as e:
+            self._log('error', f"Error initializing Dropbox: {str(e)}")
+            import traceback
+            self._log('error', f"Traceback: {traceback.format_exc()}")
+            self.is_active = False
+
+    def refresh_connection(self):
+        """Refresh Dropbox connection with latest token"""
+        self._log('info', "Refreshing Dropbox connection...")
+        return self._initialize_client()
 
     def create_folder_with_parents(self, path):
         """Create a folder in Dropbox, creating parent folders if needed"""
