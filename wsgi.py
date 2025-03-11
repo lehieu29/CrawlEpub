@@ -9,7 +9,7 @@ from main import app, socketio, start_worker_thread
 # Hàm này sẽ được gọi bởi Gunicorn
 def create_app():
     # Khởi động worker thread khi ứng dụng khởi động
-    start_worker_thread()
+    # start_worker_thread()
     # Trả về ứng dụng Flask thông thường
     return app
 

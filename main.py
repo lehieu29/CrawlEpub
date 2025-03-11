@@ -22,6 +22,7 @@ from novel_downloader import NovelDownloader
 from dropbox_storage import DropboxStorage
 from keep_alive import KeepAlive
 from dropbox_auth import DropboxAuth
+from worker_singleton import WorkerThreadSingleton
 
 # Tạo secret key duy nhất cho mỗi phiên Replit
 if not os.environ.get('SECURE_PATH_KEY'):
@@ -204,8 +205,10 @@ def download_worker():
             time.sleep(1)  # Prevent CPU spinning if there's a persistent error
 
 # Start the download worker thread
-worker_thread = threading.Thread(target=download_worker, daemon=True)
-worker_thread.start()
+# worker_thread = threading.Thread(target=download_worker, daemon=True)
+# worker_thread.start()
+
+worker_thread = WorkerThreadSingleton.get_instance(download_worker, logger)
 
 def monitor_worker_thread():
     global worker_thread
