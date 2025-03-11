@@ -107,7 +107,7 @@ download_queue = queue.Queue()
 active_downloads = {}
 
 # Initialize Dropbox storage
-dropbox_auth = DropboxAuth(logger=logger)
+dropbox_auth = DropboxAuth(logger=logger, socket=socketio)
 dropbox_storage = DropboxStorage(logger=logger, socket=socketio, dropbox_auth=dropbox_auth)
 
 # Initialize the novel downloader with the specified parameters

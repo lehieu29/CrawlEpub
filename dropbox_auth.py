@@ -7,9 +7,10 @@ from urllib.parse import urlencode
 from flask import url_for, redirect, request, session
 
 class DropboxAuth:
-    def __init__(self, logger=None):
+    def __init__(self, logger=None, socket=None):
         """Initialize Dropbox Auth with required parameters"""
-        self.logger = logger or logging.getLogger('dropbox_auth')
+        self.logger = logger or logging.getLogger('dropbox_storage')
+        self.socket = socket
         self.client_id = os.getenv('DROPBOX_APP_KEY', '')
         self.client_secret = os.getenv('DROPBOX_APP_SECRET', '')
         self.redirect_uri = None  # Will be set dynamically based on request
@@ -22,6 +23,7 @@ class DropboxAuth:
     
     def _log(self, level, message, download_id=None):
         """Log a message and emit it via socket if available"""
+        message = f'DropBoxAuth: {message}'
         if level == 'info':
             self.logger.info(message)
         elif level == 'error':
@@ -56,7 +58,7 @@ class DropboxAuth:
             }
             auth_url = f"https://www.dropbox.com/oauth2/authorize?{urlencode(params)}"
             
-            self.logger.info(f"Redirecting to Dropbox Auth: {auth_url}")
+            self._log('info', (f"Redirecting to Dropbox Auth: {auth_url}"))
             return redirect(auth_url)
             
         @app.route('/dropbox/callback')
@@ -66,11 +68,11 @@ class DropboxAuth:
             error = request.args.get('error')
             
             if error:
-                self.logger.error(f"Dropbox auth error: {error}")
+                self._log('error', (f"Dropbox auth error: {error}"))
                 return f"Authentication failed: {error}", 400
                 
             if not code:
-                self.logger.error("No authorization code received from Dropbox")
+                self._log('error', ("No authorization code received from Dropbox"))
                 return "No authorization code received", 400
                 
             # Exchange the code for tokens
@@ -82,7 +84,7 @@ class DropboxAuth:
                 
             # Save tokens
             self._save_tokens(token_data)
-            self.logger.info("Dropbox authentication successful. Tokens saved.")
+            self._log('info', ("Dropbox authentication successful. Tokens saved."))
             
             return redirect('/dropbox/status')
             
@@ -142,10 +144,10 @@ class DropboxAuth:
             if 'expires_in' in token_data:
                 token_data['expires_at'] = int(time.time()) + token_data['expires_in']
                 
-            self.logger.info(f"Successfully exchanged code for tokens. Expires in {token_data.get('expires_in')} seconds")
+            self._log('info', (f"Successfully exchanged code for tokens. Expires in {token_data.get('expires_in')} seconds"))
             return token_data
         except Exception as e:
-            self.logger.error(f"Error exchanging code for tokens: {str(e)}")
+            self._log('error', (f"Error exchanging code for tokens: {str(e)}"))
             return None
 
     def refresh_access_token(self):
@@ -153,7 +155,7 @@ class DropboxAuth:
         tokens = self.get_tokens()
         
         if not tokens or 'refresh_token' not in tokens:
-            self.logger.error("No refresh token available. User needs to re-authenticate.")
+            self._log('error', ("No refresh token available. User needs to re-authenticate."))
             return False
             
         try:
@@ -177,10 +179,10 @@ class DropboxAuth:
                 new_token_data['refresh_token'] = tokens['refresh_token']
                 
             self._save_tokens(new_token_data)
-            self.logger.info(f"Successfully refreshed access token. Expires in {new_token_data.get('expires_in')} seconds")
+            self._log('info', (f"Successfully refreshed access token. Expires in {new_token_data.get('expires_in')} seconds"))
             return True
         except Exception as e:
-            self.logger.error(f"Error refreshing access token: {str(e)}")
+            self._log('error', (f"Error refreshing access token: {str(e)}"))
             return False
 
     def get_account_info(self):
@@ -200,11 +202,11 @@ class DropboxAuth:
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            self.logger.error(f"Error getting account info: {str(e)}")
+            self._log('error', (f"Error getting account info: {str(e)}"))
             
             # If 401 Unauthorized, try refreshing the token
             if hasattr(e, 'response') and e.response.status_code == 401:
-                self.logger.info("Access token expired. Attempting to refresh...")
+                self._log('info', ("Access token expired. Attempting to refresh..."))
                 if self.refresh_access_token():
                     # Retry with new token
                     return self.get_account_info()
@@ -216,13 +218,13 @@ class DropboxAuth:
         tokens = self.get_tokens()
         
         if not tokens:
-            self.logger.warning("No tokens available")
+            self._log('warning', ("No tokens available"))
             return None
             
         # Check if token is expired or will expire soon (within 5 minutes)
         current_time = int(time.time())
         if 'expires_at' in tokens and tokens['expires_at'] - current_time < 300:
-            self.logger.info("Access token expired or will expire soon. Refreshing...")
+            self._log('info', ("Access token expired or will expire soon. Refreshing..."))
             if not self.refresh_access_token():
                 return None
             tokens = self.get_tokens()  # Get the refreshed tokens
@@ -240,7 +242,7 @@ class DropboxAuth:
                 with open(self.token_file, 'r') as f:
                     return json.load(f)
         except Exception as e:
-            self.logger.error(f"Error reading token file: {str(e)}")
+            self._log('error', (f"Error reading token file: {str(e)}"))
         
         return None
 
@@ -258,7 +260,7 @@ class DropboxAuth:
                 
             return True
         except Exception as e:
-            self.logger.error(f"Error saving tokens: {str(e)}")
+            self._log('error', (f"Error saving tokens: {str(e)}"))
             return False
             
     def _remove_tokens(self):
@@ -266,8 +268,8 @@ class DropboxAuth:
         try:
             if os.path.exists(self.token_file):
                 os.remove(self.token_file)
-                self.logger.info("Dropbox tokens removed successfully")
+                self._log('info', ("Dropbox tokens removed successfully"))
             return True
         except Exception as e:
-            self.logger.error(f"Error removing tokens: {str(e)}")
+            self._log('error', (f"Error removing tokens: {str(e)}"))
             return False
