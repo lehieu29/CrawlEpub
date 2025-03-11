@@ -196,6 +196,7 @@ class NovelDownloader:
             max_retries = 3
             for attempt in range(max_retries):
                 try:
+                    print(f"Making request to {url} with headers: {headers}")
                     response = requests.get(url, headers=headers)
                     response.raise_for_status()
 

@@ -224,8 +224,8 @@ def monitor_worker_thread():
         time.sleep(60)  # Check every minute
 
 # Start the monitor thread
-monitor_thread = threading.Thread(target=monitor_worker_thread, daemon=True)
-monitor_thread.start()
+# monitor_thread = threading.Thread(target=monitor_worker_thread, daemon=True)
+# monitor_thread.start()
 
 # Replace the existing worker thread initialization with this:
 def start_worker_thread():
