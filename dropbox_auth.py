@@ -199,17 +199,32 @@ class DropboxAuth:
             
             response = requests.post('https://api.dropboxapi.com/2/users/get_current_account', 
                                      headers=headers)
+            self._log('info', f'Request Account Info Token Length: {len(access_token)}')
+
             response.raise_for_status()
             return response.json()
         except Exception as e:
             self._log('error', (f"Error getting account info: {str(e)}"))
             
             # If 401 Unauthorized, try refreshing the token
-            if hasattr(e, 'response') and e.response.status_code == 401:
-                self._log('info', ("Access token expired. Attempting to refresh..."))
+            if hasattr(e, 'response') and getattr(e.response, 'status_code', 0) == 401:
+                self._log('info', "Access token expired. Attempting to refresh...")
                 if self.refresh_access_token():
-                    # Retry with new token
-                    return self.get_account_info()
+                    # Get a fresh token after refresh
+                    fresh_token = self.get_tokens().get('access_token')
+                    if fresh_token:
+                        try:
+                            headers = {
+                                'Authorization': f'Bearer {fresh_token}',
+                                'Content-Type': 'application/json',
+                            }
+                            response = requests.post('https://api.dropboxapi.com/2/users/get_current_account', 
+                                                    headers=headers)
+                            response.raise_for_status()
+                            return response.json()
+                        except Exception as retry_e:
+                            self._log('error', f"Error getting account info after token refresh: {str(retry_e)}")
+                            return None
                     
             return None
 
@@ -238,6 +253,9 @@ class DropboxAuth:
     def get_tokens(self):
         """Get the stored tokens"""
         try:
+            if self.access_token:
+                return self.access_token
+            
             if os.path.exists(self.token_file):
                 with open(self.token_file, 'r') as f:
                     return json.load(f)
@@ -249,6 +267,8 @@ class DropboxAuth:
     def _save_tokens(self, token_data):
         """Save tokens to the secure file"""
         try:
+            self.access_token = token_data
+
             with open(self.token_file, 'w') as f:
                 json.dump(token_data, f)
             
@@ -266,6 +286,8 @@ class DropboxAuth:
     def _remove_tokens(self):
         """Remove the stored tokens file"""
         try:
+            self.access_token = ''
+
             if os.path.exists(self.token_file):
                 os.remove(self.token_file)
                 self._log('info', ("Dropbox tokens removed successfully"))

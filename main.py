@@ -136,55 +136,7 @@ def download_worker():
                 cookie = task.get('cookie', '')
                 logger.info(f"Worker thread got task: {download_id}")
 
-                # Update status
-                active_downloads[download_id] = {
-                    'status': 'in_progress',
-                    'url': url,
-                    'start_time': time.time(),
-                    'progress': 0
-                }
-
-                # Emit status update
-                socketio.emit('status_update', {
-                    'download_id': download_id,
-                    'status': 'in_progress',
-                    'message': f"Starting download for {url}"
-                })
-
-                # Run the download
-                logger.info(f"Starting download for URL: {url} with ID: {download_id}")
-                result = downloader.download_novel(url, cookie=cookie, download_id=download_id)
-
-                if result['success']:
-                    # Update status on success
-                    active_downloads[download_id]['status'] = 'completed'
-                    active_downloads[download_id]['file_path'] = result['file_path']
-                    active_downloads[download_id]['dropbox_url'] = result.get('dropbox_url', '')
-                    active_downloads[download_id]['end_time'] = time.time()
-
-                    # Emit completion event
-                    socketio.emit('download_completed', {
-                        'download_id': download_id,
-                        'url': url,
-                        'file_path': result['file_path'],
-                        'dropbox_url': result.get('dropbox_url', '')
-                    })
-
-                    logger.info(f"Download completed for ID: {download_id}")
-                else:
-                    # Update status on failure
-                    active_downloads[download_id]['status'] = 'failed'
-                    active_downloads[download_id]['error'] = result['error']
-                    active_downloads[download_id]['end_time'] = time.time()
-
-                    # Emit failure event
-                    socketio.emit('download_failed', {
-                        'download_id': download_id,
-                        'url': url,
-                        'error': result['error']
-                    })
-
-                    logger.error(f"Download failed for ID: {download_id}: {result['error']}")
+                download_novel(download_id=download_id, url=url, cookie=cookie)
 
                 # Mark task as done
                 download_queue.task_done()
@@ -204,11 +156,62 @@ def download_worker():
             logger.error(f"Error in download worker: {str(e)}")
             time.sleep(1)  # Prevent CPU spinning if there's a persistent error
 
+def download_novel(download_id, url, cookie):
+    # Update status
+    active_downloads[download_id] = {
+        'status': 'in_progress',
+        'url': url,
+        'start_time': time.time(),
+        'progress': 0
+    }
+
+    # Emit status update
+    socketio.emit('status_update', {
+        'download_id': download_id,
+        'status': 'in_progress',
+        'message': f"Starting download for {url}"
+    })
+
+    # Run the download
+    logger.info(f"Starting download for URL: {url} with ID: {download_id}")
+    result = downloader.download_novel(url, cookie=cookie, download_id=download_id)
+
+    if result['success']:
+        # Update status on success
+        active_downloads[download_id]['status'] = 'completed'
+        active_downloads[download_id]['file_path'] = result['file_path']
+        active_downloads[download_id]['dropbox_url'] = result.get('dropbox_url', '')
+        active_downloads[download_id]['end_time'] = time.time()
+
+        # Emit completion event
+        socketio.emit('download_completed', {
+            'download_id': download_id,
+            'url': url,
+            'file_path': result['file_path'],
+            'dropbox_url': result.get('dropbox_url', '')
+        })
+
+        logger.info(f"Download completed for ID: {download_id}")
+    else:
+        # Update status on failure
+        active_downloads[download_id]['status'] = 'failed'
+        active_downloads[download_id]['error'] = result['error']
+        active_downloads[download_id]['end_time'] = time.time()
+
+        # Emit failure event
+        socketio.emit('download_failed', {
+            'download_id': download_id,
+            'url': url,
+            'error': result['error']
+        })
+
+        logger.error(f"Download failed for ID: {download_id}: {result['error']}")
+
 # Start the download worker thread
 # worker_thread = threading.Thread(target=download_worker, daemon=True)
 # worker_thread.start()
 
-worker_thread = WorkerThreadSingleton.get_instance(download_worker, logger)
+# worker_thread = WorkerThreadSingleton.get_instance(download_worker, logger)
 
 def monitor_worker_thread():
     global worker_thread
@@ -352,7 +355,8 @@ def start_download():
 
         # Đảm bảo task được đưa vào queue
         try:
-            download_queue.put(task, block=False)
+            # download_queue.put(task, block=False)
+            download_novel(download_id, url, cookie)
             logger.info(f"Task added to queue successfully")
         except queue.Full:
             logger.error("Queue is full. Could not add task.")
